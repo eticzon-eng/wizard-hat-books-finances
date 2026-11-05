@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -157,6 +158,32 @@ class AppTests(unittest.TestCase):
         patched = self.client.patch(f"/api/expenses/{body['id']}", json={"notes": "Invoice 14 paid"})
         self.assertEqual(patched.json()["notes"], "Invoice 14 paid")
         self.assertEqual(patched.json()["amount_cents"], 4525)
+
+    def test_library_seed_imports_through_the_model(self):
+        seed = json.loads((ROOT / "seeds" / "expenses.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(seed), 90)
+        self.assertEqual(sum(row["amount_cents"] for row in seed), 690533)
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], [])
+        created = db.create_expenses(seed)
+        self.assertEqual(len(created), 90)
+        listed = self.client.get("/api/expenses").json()
+        self.assertEqual(listed["totals"], [{"currency": "USD", "amount_cents": 690533, "count": 90}])
+        titles = [row["title"] for row in created]
+        self.assertEqual(titles.count("Silas and the Wizard"), 61)
+        self.assertEqual(titles.count(""), 29)
+        cursor = next(
+            row for row in created if row["payee"] == "Cursor" and row["spent_on"] == "2026-04-07"
+        )
+        self.assertEqual(cursor["category"], "Software")
+        self.assertEqual(cursor["description"], "Cursor AI Powered IDE")
+        self.assertEqual(cursor["amount_cents"], 20544)
+        self.assertEqual(cursor["currency"], "USD")
+        self.assertEqual(cursor["title"], "")
+        internet = next(row for row in created if row["notes"] == "50% write off")
+        self.assertEqual(internet["payee"], "Cox Communications/Spectrum")
+        self.assertEqual(internet["category"], "Internet")
+        self.assertEqual(internet["spent_on"], "2026-04-28")
+        self.assertEqual(internet["amount_cents"], 9000)
 
     def test_royalty_samples_stay_separate(self):
         kdp = self.client.post(

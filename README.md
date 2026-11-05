@@ -4,7 +4,7 @@ Local site for Wizard Hat Books expenses, Amazon KDP royalties, IngramSpark roya
 
 This repository is separate from the art library and the author site (`eticzon-eng/book-art-library`) and from the tennis league (`eticzon-eng/fantasy_league`). Artwork and the public author site stay in the art library.
 
-The art library did not contain an expenses screen or any saved expense records, so this ledger starts empty except for four inventory locations: Home, InkFish Books, Barrington Books, and TikTok Shop.
+Book Art Library expenses are in `seeds/expenses.json`. Starting the site creates `data/finances.db` and, when that database has no expenses yet, loads the seed. The database file stays on this computer. Inventory starts with four locations: Home, InkFish Books, Barrington Books, and TikTok Shop.
 
 ## Run locally
 

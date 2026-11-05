@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterator, Optional
 
-from .paths import ensure_dirs, db_path
+from .paths import DATA_DIR, ROOT, ensure_dirs, db_path
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -130,6 +131,7 @@ def init_db() -> None:
                 """,
                 (name, kind, sort_order),
             )
+    _load_expense_seed_if_empty()
 
 
 def _require_currency(currency: str) -> str:
@@ -208,22 +210,56 @@ def _expense_from_fields(fields: dict[str, Any], *, partial: bool) -> dict[str, 
     return data
 
 
+_EXPENSE_INSERT = """
+INSERT INTO expenses (
+    spent_on, payee, category, description, amount_cents, currency, title, notes, created_at
+) VALUES (
+    :spent_on, :payee, :category, :description, :amount_cents, :currency, :title, :notes, :created_at
+)
+"""
+
+
+def _expense_seed_path():
+    return ROOT / "seeds" / "expenses.json"
+
+
 def create_expense(fields: dict[str, Any]) -> dict[str, Any]:
-    data = _expense_from_fields(fields, partial=False)
-    data["created_at"] = utcnow()
+    return create_expenses([fields])[0]
+
+
+def create_expenses(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    prepared = []
+    for fields in rows:
+        data = _expense_from_fields(fields, partial=False)
+        data["created_at"] = utcnow()
+        prepared.append(data)
+    created: list[dict[str, Any]] = []
     with connect() as conn:
-        cur = conn.execute(
-            """
-            INSERT INTO expenses (
-                spent_on, payee, category, description, amount_cents, currency, title, notes, created_at
-            ) VALUES (
-                :spent_on, :payee, :category, :description, :amount_cents, :currency, :title, :notes, :created_at
-            )
-            """,
-            data,
-        )
-        row = conn.execute("SELECT * FROM expenses WHERE id = ?", (cur.lastrowid,)).fetchone()
-        return _row(row)
+        for data in prepared:
+            cur = conn.execute(_EXPENSE_INSERT, data)
+            row = conn.execute("SELECT * FROM expenses WHERE id = ?", (cur.lastrowid,)).fetchone()
+            created.append(_row(row))
+    return created
+
+
+def _load_expense_seed_if_empty() -> None:
+    """Load the committed library ledger into a new default database.
+
+    Test databases and any FINANCES_DB override stay empty until records are entered.
+    """
+    if db_path().resolve() != (DATA_DIR / "finances.db").resolve():
+        return
+    seed_path = _expense_seed_path()
+    if not seed_path.is_file():
+        return
+    with connect() as conn:
+        existing = int(conn.execute("SELECT COUNT(*) AS n FROM expenses").fetchone()["n"])
+    if existing:
+        return
+    payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list) or not payload:
+        return
+    create_expenses(payload)
 
 
 def update_expense(expense_id: int, fields: dict[str, Any]) -> dict[str, Any]:

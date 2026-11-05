@@ -1,0 +1,902 @@
+[
+  {
+    "spent_on": "2026-04-07",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor AI Powered IDE",
+    "amount_cents": 20544,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-05-11",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage Mid May",
+    "amount_cents": 2174,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-05-15",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage Mid May",
+    "amount_cents": 4299,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-05-21",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage Mid May",
+    "amount_cents": 6427,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-06-09",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage May",
+    "amount_cents": 8499,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-06",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage Mid July",
+    "amount_cents": 2140,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-13",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage July",
+    "amount_cents": 1046,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-04-28",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "Cox/Spectrum Internet",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": "50% write off"
+  },
+  {
+    "spent_on": "2026-05-28",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "Internet May",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-06-29",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "June Internet",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-28",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "July Internet",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-28",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "August Internet",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-06",
+    "payee": "TechSmith",
+    "category": "Software",
+    "description": "Screen Capture Software",
+    "amount_cents": 4173,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-04",
+    "payee": "Paddle.com",
+    "category": "Software",
+    "description": "Vellum Book Formatting Software",
+    "amount_cents": 26749,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-12",
+    "payee": "CloudFlare",
+    "category": "Domain / web",
+    "description": "wgdocent.com domain registration 7/12/2026 - 7/12/2027",
+    "amount_cents": 1046,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-15",
+    "payee": "CloudFlare",
+    "category": "Domain / web",
+    "description": "wizardhatbooks.com domain registration 7/15/2026 - 7/15/2027",
+    "amount_cents": 1046,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-25",
+    "payee": "Sticker Mule",
+    "category": "Advertising",
+    "description": "Promotional Magnets Silas and the Wizard",
+    "amount_cents": 7490,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-12",
+    "payee": "Zeely, Inc.",
+    "category": "Advertising",
+    "description": "Zeely AI Advertising",
+    "amount_cents": 28000,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-12",
+    "payee": "Zeely, Inc.",
+    "category": "Advertising",
+    "description": "Zeely Subscription",
+    "amount_cents": 4995,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-12",
+    "payee": "Amazon Advertising",
+    "category": "Advertising",
+    "description": "Silas - US Auto - Discovery",
+    "amount_cents": 105,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-21",
+    "payee": "Amazon Advertising",
+    "category": "Advertising",
+    "description": "Amazon Ads",
+    "amount_cents": 2239,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-21",
+    "payee": "Amazon Advertising",
+    "category": "Advertising",
+    "description": "Amazon Ads",
+    "amount_cents": 2000,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-28",
+    "payee": "Sticker Mule",
+    "category": "Advertising",
+    "description": "Sticker Mule Promo Magnets",
+    "amount_cents": 11663,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-22",
+    "payee": "Prowritingaid.com",
+    "category": "Software",
+    "description": "Writing/Proofreading software",
+    "amount_cents": 14400,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-15",
+    "payee": "Bowker Publishing Services",
+    "category": "Publishing",
+    "description": "ISBN Bowker",
+    "amount_cents": 29500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-27",
+    "payee": "Reedsy",
+    "category": "Professional services",
+    "description": "Developmental Editing - Hannah VanVels Ausbury",
+    "amount_cents": 260260,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-07",
+    "payee": "Tiktok",
+    "category": "Advertising",
+    "description": "Tiktok post boost promote",
+    "amount_cents": 2400,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-07",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads FACEBK *JNFTA2WE34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-07",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *USY2U22E34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-08",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *UQHUC3EE34",
+    "amount_cents": 201,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-08",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *WMCMF4AE34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-09",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *5MD2J56E34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-09",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *YJ7VK4AE34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-10",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *84MBY2NE34",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-11",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads PP*METAPLATFOR 4029357733",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-12",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *L297Z2WE34",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-14",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *CH46966E34",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-16",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads PP*METAPLATFOR 4029357733",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-17",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *BUTJZ5AJT4",
+    "amount_cents": 209,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-17",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads PP*METAPLATFOR",
+    "amount_cents": 97,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-19",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads FACEBK *44HXW5SHT4",
+    "amount_cents": 202,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-19",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads PP*METAPLATFOR 4029357733",
+    "amount_cents": 367,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-04-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile phone service",
+    "amount_cents": 14743,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-05-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile phone service",
+    "amount_cents": 9663,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-06-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile phone service",
+    "amount_cents": 10339,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-07-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile phone service",
+    "amount_cents": 10352,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-08-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile Phone service",
+    "amount_cents": 17587,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-03",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Mobile Phone service",
+    "amount_cents": 11487,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-21",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 221,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-21",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 272,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-22",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 342,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-22",
+    "payee": "Tiktok",
+    "category": "Advertising",
+    "description": "Tiktok ads",
+    "amount_cents": 3600,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-22",
+    "payee": "Tiktok",
+    "category": "Advertising",
+    "description": "Tiktok ads",
+    "amount_cents": 2400,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-23",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 262,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-24",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 62,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-24",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 501,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-25",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "FACEBOOKAD* 9GXFE8JHT4",
+    "amount_cents": 511,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-25",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "FACEBOOKAD ad",
+    "amount_cents": 213,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-30",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "FACEBOOKAD ad",
+    "amount_cents": 1018,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-01",
+    "payee": "Tiktok",
+    "category": "Advertising",
+    "description": "tiktok ad",
+    "amount_cents": 3000,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-21",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "Cell phone",
+    "amount_cents": 11487,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-28",
+    "payee": "Cox Communications/Spectrum",
+    "category": "Internet",
+    "description": "Internet",
+    "amount_cents": 9000,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-01",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor Usage mid-september",
+    "amount_cents": 2981,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-02",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-02",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-02",
+    "payee": "Tiktok",
+    "category": "Advertising",
+    "description": "Tiktok ads",
+    "amount_cents": 5400,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-02",
+    "payee": "Amazon Advertising",
+    "category": "Advertising",
+    "description": "Amazon Ads",
+    "amount_cents": 1304,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-03",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-03",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-03",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 500,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-28",
+    "payee": "IngramSpark",
+    "category": "Publishing",
+    "description": "Proof Copy",
+    "amount_cents": 1600,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-09",
+    "payee": "Cursor",
+    "category": "Software",
+    "description": "Cursor AI",
+    "amount_cents": 1961,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-07",
+    "payee": "Common Energy",
+    "category": "Utilities",
+    "description": "Common Energy Electric",
+    "amount_cents": 9266,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-09-30",
+    "payee": "Revvue",
+    "category": "Professional services",
+    "description": "Revvue subscription - independent book reviews",
+    "amount_cents": 19900,
+    "currency": "USD",
+    "title": "",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-09",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 2463,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-09",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook advertising",
+    "amount_cents": 1022,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-08",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 2455,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-07",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook ads",
+    "amount_cents": 2457,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-06",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 1202,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 728,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 1200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Goodreads",
+    "category": "Advertising",
+    "description": "Goodreads giveaway promotion",
+    "amount_cents": 11900,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 1200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 1200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-05",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 1200,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-10",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "Facebook Ads",
+    "amount_cents": 2463,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-12",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 2460,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-12",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "facebook ads",
+    "amount_cents": 2462,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-13",
+    "payee": "Meta",
+    "category": "Advertising",
+    "description": "FACEBOOKAD* XPKM69SHT4",
+    "amount_cents": 2463,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  },
+  {
+    "spent_on": "2026-10-20",
+    "payee": "Verizon",
+    "category": "Mobile Phone",
+    "description": "mobile phone",
+    "amount_cents": 11515,
+    "currency": "USD",
+    "title": "Silas and the Wizard",
+    "notes": ""
+  }
+]
