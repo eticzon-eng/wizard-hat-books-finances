@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wizard Hat Books Finances</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Wizard Hat Books</strong>
+      <span class="muted">Finances — expenses, royalties, and copies on hand</span>
+    </div>
+    <p class="muted local-note">Saved on this computer. No store login.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" class="tab active" data-view="expenses">Expenses</button>
+    <button type="button" class="tab" data-view="royalties">Royalties</button>
+    <button type="button" class="tab" data-view="inventory">Inventory</button>
+  </nav>
+
+  <p id="message" class="message" role="status"></p>
+
+  <main>
+    <section id="view-expenses" class="view active">
+      <div class="summary" id="expenseSummary"></div>
+      <form id="expenseForm" class="card form-grid">
+        <h2 id="expenseFormTitle">Add expense</h2>
+        <label class="field">
+          <span>Date</span>
+          <input id="expenseDate" type="date" required>
+        </label>
+        <label class="field">
+          <span>Payee</span>
+          <input id="expensePayee" type="text" required placeholder="Printer, ads, post office…">
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <input id="expenseCategory" type="text" list="categorySuggestions" required placeholder="Printing, shipping, ads…">
+          <datalist id="categorySuggestions">
+            <option value="Printing"></option>
+            <option value="Shipping"></option>
+            <option value="Advertising"></option>
+            <option value="Software"></option>
+            <option value="Design"></option>
+            <option value="Events"></option>
+            <option value="Supplies"></option>
+            <option value="Postage"></option>
+          </datalist>
+        </label>
+        <label class="field">
+          <span>Amount</span>
+          <input id="expenseAmount" type="text" inputmode="decimal" required placeholder="0.00">
+        </label>
+        <label class="field">
+          <span>Currency</span>
+          <input id="expenseCurrency" type="text" value="USD" maxlength="3" required>
+        </label>
+        <label class="field">
+          <span>Title</span>
+          <input id="expenseTitle" type="text" placeholder="Optional, if it belongs to one book">
+        </label>
+        <label class="field wide">
+          <span>Description</span>
+          <input id="expenseDescription" type="text" placeholder="What the payment was for">
+        </label>
+        <label class="field wide">
+          <span>Notes</span>
+          <input id="expenseNotes" type="text">
+        </label>
+        <div class="button-row wide">
+          <button type="submit" class="btn primary" id="expenseSaveBtn">Add expense</button>
+          <button type="button" class="btn hidden" id="expenseCancelBtn">Cancel edit</button>
+        </div>
+      </form>
+      <div class="toolbar">
+        <input id="expenseSearch" type="search" placeholder="Search payee, category, title, notes…">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Payee</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Title</th>
+              <th class="num">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="expenseRows"></tbody>
+        </table>
+      </div>
+      <p id="expenseEmpty" class="muted empty hidden">No expenses yet.</p>
+    </section>
+
+    <section id="view-royalties" class="view">
+      <p class="muted section-hint">Amazon KDP and IngramSpark stay in separate ledgers. Totals below never add the two sources together.</p>
+      <div class="totals-grid">
+        <section>
+          <h2>By source</h2>
+          <div id="totalsBySource"></div>
+        </section>
+        <section>
+          <h2>By title</h2>
+          <div id="totalsByTitle"></div>
+        </section>
+        <section>
+          <h2>By period</h2>
+          <div id="totalsByPeriod"></div>
+        </section>
+      </div>
+
+      <div class="source-switch" role="tablist" aria-label="Royalty source">
+        <button type="button" class="tab active" data-source="kdp">Amazon KDP</button>
+        <button type="button" class="tab" data-source="ingramspark">IngramSpark</button>
+      </div>
+
+      <div class="split">
+        <form id="royaltyForm" class="card form-grid">
+          <h2 id="royaltyFormTitle">Add KDP royalty</h2>
+          <label class="field">
+            <span>Period</span>
+            <input id="royaltyPeriod" type="month" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="royaltyDate" type="date">
+          </label>
+          <label class="field">
+            <span>Title</span>
+            <input id="royaltyTitle" type="text" required>
+          </label>
+          <label class="field">
+            <span>Author</span>
+            <input id="royaltyAuthor" type="text">
+          </label>
+          <label class="field">
+            <span id="productIdLabel">ASIN / ISBN</span>
+            <input id="royaltyProductId" type="text">
+          </label>
+          <label class="field">
+            <span id="marketLabel">Marketplace</span>
+            <input id="royaltyMarket" type="text" placeholder="Amazon.com">
+          </label>
+          <label class="field">
+            <span>Format</span>
+            <input id="royaltyFormat" type="text" placeholder="Paperback, Hardcover, Ebook">
+          </label>
+          <label class="field kdp-only">
+            <span>Royalty type</span>
+            <input id="royaltyType" type="text" placeholder="70%">
+          </label>
+          <label class="field kdp-only">
+            <span>Transaction type</span>
+            <input id="royaltyTxn" type="text" placeholder="Standard - Paperback">
+          </label>
+          <label class="field">
+            <span>Units sold</span>
+            <input id="royaltySold" type="number" step="1">
+          </label>
+          <label class="field">
+            <span id="refundLabel">Units refunded</span>
+            <input id="royaltyRefunded" type="number" step="1">
+          </label>
+          <label class="field">
+            <span>Net units</span>
+            <input id="royaltyNet" type="number" step="1">
+          </label>
+          <label class="field kdp-only">
+            <span>KENP</span>
+            <input id="royaltyKenp" type="number" step="1" min="0">
+          </label>
+          <label class="field">
+            <span id="amountLabel">Royalty</span>
+            <input id="royaltyAmount" type="text" inputmode="decimal" placeholder="0.00">
+          </label>
+          <label class="field">
+            <span>Currency</span>
+            <input id="royaltyCurrency" type="text" value="USD" maxlength="3">
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="royaltyNotes" type="text">
+          </label>
+          <div class="button-row wide">
+            <button type="submit" class="btn primary">Save royalty</button>
+          </div>
+        </form>
+
+        <form id="importForm" class="card">
+          <h2>Import CSV</h2>
+          <p class="muted" id="importHelp"></p>
+          <label class="field">
+            <span>Report month</span>
+            <input id="importPeriod" type="month">
+            <span class="hint">Used when the file has no date. A dated row keeps its own month.</span>
+          </label>
+          <label class="field">
+            <span>File</span>
+            <input id="importFile" type="file" accept=".csv,.xlsx,text/csv" required>
+          </label>
+          <button type="submit" class="btn primary">Import</button>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="royaltyHead"></tr>
+          </thead>
+          <tbody id="royaltyRows"></tbody>
+        </table>
+      </div>
+      <p id="royaltyEmpty" class="muted empty hidden">No royalties for this source yet.</p>
+    </section>
+
+    <section id="view-inventory" class="view">
+      <p class="muted section-hint">Copies are counted by title at Home, InkFish Books, Barrington Books, and TikTok Shop. A sale removes copies from the place they leave and records where they sold.</p>
+      <form id="titleForm" class="toolbar">
+        <input id="titleName" type="text" placeholder="New title, such as Silas and the Wizard" required>
+        <button type="submit" class="btn primary">Add title</button>
+      </form>
+
+      <h2>On hand</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="stockHead"></tr>
+          </thead>
+          <tbody id="stockRows"></tbody>
+        </table>
+      </div>
+      <p id="stockEmpty" class="muted empty hidden">Add a title, then receive the copies you have at home.</p>
+
+      <div class="split three">
+        <form id="receiveForm" class="card form-grid">
+          <h2>Receive</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="receiveTitle" required></select>
+          </label>
+          <label class="field">
+            <span>Where they arrived</span>
+            <select id="receiveLocation" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="receiveQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="receiveDate" type="date" required>
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="receiveNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Receive</button></div>
+        </form>
+
+        <form id="moveForm" class="card form-grid">
+          <h2>Move</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="moveTitle" required></select>
+          </label>
+          <label class="field">
+            <span>From</span>
+            <select id="moveFrom" required></select>
+          </label>
+          <label class="field">
+            <span>To</span>
+            <select id="moveTo" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="moveQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="moveDate" type="date" required>
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="moveNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Move</button></div>
+        </form>
+
+        <form id="saleForm" class="card form-grid">
+          <h2>Sale</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="saleTitle" required></select>
+          </label>
+          <label class="field">
+            <span>Copies leave</span>
+            <select id="saleFrom" required></select>
+          </label>
+          <label class="field">
+            <span>Sold through</span>
+            <select id="saleChannel" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="saleQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="saleDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>Unit price</span>
+            <input id="salePrice" type="text" inputmode="decimal" placeholder="Optional">
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="saleNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Record sale</button></div>
+        </form>
+      </div>
+
+      <h2>Sales</h2>
+      <div id="salesTotals"></div>
+
+      <h2>Activity</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Title</th>
+              <th>What happened</th>
+              <th class="num">Copies</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="eventRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
