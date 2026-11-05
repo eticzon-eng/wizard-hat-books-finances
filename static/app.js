@@ -1,6 +1,7 @@
 const state = {
   expenses: [],
-  editingExpenseId: null,
+  expenseChoices: { vendors: [], categories: [], books: [] },
+  expenseUi: { pendingFiles: [], pendingPreviewUrls: [], currentAttachments: [] },
   royaltySource: "kdp",
   royalties: null,
   inventory: null,
@@ -126,96 +127,6 @@ function renderSimpleTable(target, columns, rows, emptyText) {
   wrap.className = "table-wrap";
   wrap.appendChild(table);
   target.appendChild(wrap);
-}
-
-async function loadExpenses() {
-  const data = await api("/api/expenses");
-  state.expenses = data.expenses;
-  renderExpenses();
-}
-
-function renderExpenses() {
-  const summary = $("expenseSummary");
-  clear(summary);
-  const totals = {};
-  state.expenses.forEach((expense) => {
-    totals[expense.currency] = (totals[expense.currency] || 0) + expense.amount_cents;
-  });
-  const currencies = Object.keys(totals);
-  if (!currencies.length) {
-    summary.appendChild(el("p", "No expenses recorded.", "muted"));
-  }
-  currencies.forEach((currency) => {
-    const card = document.createElement("div");
-    card.className = "stat";
-    card.appendChild(el("span", `Expenses · ${currency}`, "muted"));
-    card.appendChild(el("strong", money(totals[currency], currency)));
-    summary.appendChild(card);
-  });
-
-  const query = $("expenseSearch").value.trim().toLowerCase();
-  const rows = state.expenses.filter((expense) => {
-    if (!query) return true;
-    const haystack = [expense.payee, expense.category, expense.description, expense.title, expense.notes]
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(query);
-  });
-  const body = $("expenseRows");
-  clear(body);
-  $("expenseEmpty").classList.toggle("hidden", rows.length > 0);
-  rows.forEach((expense) => {
-    const tr = document.createElement("tr");
-    [expense.spent_on, expense.payee, expense.category, expense.description || "—", expense.title || "—"].forEach(
-      (value) => tr.appendChild(el("td", value)),
-    );
-    const amount = el("td", money(expense.amount_cents, expense.currency), "num");
-    tr.appendChild(amount);
-    const actions = document.createElement("td");
-    const edit = el("button", "Edit", "btn small");
-    edit.type = "button";
-    edit.addEventListener("click", () => startExpenseEdit(expense));
-    const remove = el("button", "Delete", "btn small danger");
-    remove.type = "button";
-    remove.addEventListener("click", () => removeExpense(expense));
-    actions.append(edit, document.createTextNode(" "), remove);
-    tr.appendChild(actions);
-    body.appendChild(tr);
-  });
-}
-
-function startExpenseEdit(expense) {
-  state.editingExpenseId = expense.id;
-  $("expenseFormTitle").textContent = "Edit expense";
-  $("expenseSaveBtn").textContent = "Save changes";
-  $("expenseCancelBtn").classList.remove("hidden");
-  $("expenseDate").value = expense.spent_on;
-  $("expensePayee").value = expense.payee;
-  $("expenseCategory").value = expense.category;
-  $("expenseDescription").value = expense.description || "";
-  $("expenseAmount").value = (expense.amount_cents / 100).toFixed(2);
-  $("expenseCurrency").value = expense.currency;
-  $("expenseTitle").value = expense.title || "";
-  $("expenseNotes").value = expense.notes || "";
-  $("expensePayee").focus();
-}
-
-function resetExpenseForm() {
-  state.editingExpenseId = null;
-  $("expenseForm").reset();
-  $("expenseFormTitle").textContent = "Add expense";
-  $("expenseSaveBtn").textContent = "Add expense";
-  $("expenseCancelBtn").classList.add("hidden");
-  $("expenseDate").value = today();
-  $("expenseCurrency").value = "USD";
-}
-
-async function removeExpense(expense) {
-  if (!confirm(`Delete the ${money(expense.amount_cents, expense.currency)} expense for ${expense.payee}?`)) return;
-  await api(`/api/expenses/${expense.id}`, { method: "DELETE" });
-  if (state.editingExpenseId === expense.id) resetExpenseForm();
-  setMessage("Expense deleted.");
-  await loadExpenses();
 }
 
 function applyRoyaltySource() {
@@ -458,40 +369,6 @@ document.querySelectorAll(".source-switch .tab").forEach((tab) => {
   });
 });
 
-$("expenseSearch").addEventListener("input", renderExpenses);
-$("expenseCancelBtn").addEventListener("click", () => {
-  resetExpenseForm();
-  setMessage("");
-});
-
-$("expenseForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try {
-    const payload = {
-      spent_on: $("expenseDate").value,
-      payee: $("expensePayee").value.trim(),
-      category: $("expenseCategory").value.trim(),
-      description: $("expenseDescription").value.trim(),
-      amount_cents: dollarsToCents($("expenseAmount").value),
-      currency: $("expenseCurrency").value.trim().toUpperCase(),
-      title: $("expenseTitle").value.trim(),
-      notes: $("expenseNotes").value.trim(),
-    };
-    if (payload.amount_cents === null) throw new Error("Amount is required.");
-    if (state.editingExpenseId) {
-      await api(`/api/expenses/${state.editingExpenseId}`, { method: "PATCH", body: payload });
-      setMessage("Expense updated.");
-    } else {
-      await api("/api/expenses", { method: "POST", body: payload });
-      setMessage("Expense added.");
-    }
-    resetExpenseForm();
-    await loadExpenses();
-  } catch (error) {
-    setMessage(error.message, true);
-  }
-});
-
 $("royaltyForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
@@ -634,14 +511,13 @@ $("saleForm").addEventListener("submit", async (event) => {
 });
 
 function boot() {
-  $("expenseDate").value = today();
   $("royaltyPeriod").value = thisMonth();
   $("importPeriod").value = thisMonth();
   ["receiveDate", "moveDate", "saleDate"].forEach((id) => {
     $(id).value = today();
   });
   applyRoyaltySource();
-  Promise.all([loadExpenses(), loadRoyalties(), loadInventory()]).catch((error) => {
+  Promise.all([loadRoyalties(), loadInventory()]).catch((error) => {
     setMessage(error.message, true);
   });
 }

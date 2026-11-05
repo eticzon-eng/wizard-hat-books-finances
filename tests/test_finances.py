@@ -158,6 +158,51 @@ class AppTests(unittest.TestCase):
         patched = self.client.patch(f"/api/expenses/{body['id']}", json={"notes": "Invoice 14 paid"})
         self.assertEqual(patched.json()["notes"], "Invoice 14 paid")
         self.assertEqual(patched.json()["amount_cents"], 4525)
+        self.assertEqual(created.json()["payment_method"], "")
+        self.assertEqual(created.json()["write_off_percent"], 100)
+
+    def test_expense_modal_fields_round_trip(self):
+        created = self.client.post(
+            "/api/expenses",
+            json={
+                "spent_on": "2026-05-02",
+                "payee": "Verizon",
+                "category": "Mobile Phone",
+                "description": "Mobile phone service",
+                "amount_cents": 10000,
+                "currency": "USD",
+                "title": "",
+                "notes": "",
+                "payment_method": "Auto pay",
+                "write_off_percent": 50,
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        body = created.json()
+        self.assertEqual(body["payment_method"], "Auto pay")
+        self.assertEqual(body["write_off_percent"], 50)
+        self.assertEqual(body["write_off_cents"], 5000)
+        self.assertEqual(body["book_title"], "General")
+        uploaded = self.client.post(
+            f"/api/expenses/{body['id']}/attachments",
+            files=[("files", ("bill.png", b"receipt-bytes", "image/png"))],
+        )
+        self.assertEqual(uploaded.status_code, 200, uploaded.text)
+        attachment = uploaded.json()["attachments"][0]
+        self.assertEqual(attachment["original_name"], "bill.png")
+        downloaded = self.client.get(f"/api/expense-receipts/{attachment['id']}")
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(downloaded.content, b"receipt-bytes")
+        page = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        css = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
+        self.assertIn('id="expenseDialog"', page)
+        self.assertIn('id="deleteExpenseBtn"', page)
+        self.assertIn('id="expensePayment"', page)
+        self.assertIn('id="expenseWriteOffPercent"', page)
+        self.assertIn('id="expenseFiles"', page)
+        self.assertNotIn("expenseRows", page)
+        self.assertIn("margin: 0 auto", css)
+        self.assertIn("min(var(--max), calc(100% - 2rem))", css)
 
     def test_library_seed_imports_through_the_model(self):
         seed = json.loads((ROOT / "seeds" / "expenses.json").read_text(encoding="utf-8"))
@@ -179,11 +224,16 @@ class AppTests(unittest.TestCase):
         self.assertEqual(cursor["amount_cents"], 20544)
         self.assertEqual(cursor["currency"], "USD")
         self.assertEqual(cursor["title"], "")
+        self.assertEqual(cursor["payment_method"], "Checking Debit Card")
+        self.assertEqual(cursor["write_off_percent"], 100)
         internet = next(row for row in created if row["notes"] == "50% write off")
         self.assertEqual(internet["payee"], "Cox Communications/Spectrum")
         self.assertEqual(internet["category"], "Internet")
         self.assertEqual(internet["spent_on"], "2026-04-28")
         self.assertEqual(internet["amount_cents"], 9000)
+        self.assertEqual(internet["write_off_percent"], 50)
+        self.assertEqual(internet["payment_method"], "Checking Debit Card")
+        self.assertEqual(sum(len(row.get("receipts") or []) for row in seed), 90)
 
     def test_royalty_samples_stay_separate(self):
         kdp = self.client.post(

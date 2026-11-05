@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
+import shutil
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from .paths import DATA_DIR, ROOT, ensure_dirs, db_path
@@ -22,6 +25,8 @@ CREATE TABLE IF NOT EXISTS expenses (
     currency TEXT NOT NULL DEFAULT 'USD',
     title TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
+    payment_method TEXT NOT NULL DEFAULT '',
+    write_off_percent INTEGER NOT NULL DEFAULT 100,
     created_at TEXT NOT NULL
 );
 
@@ -85,6 +90,37 @@ CREATE TABLE IF NOT EXISTS inventory_events (
 CREATE INDEX IF NOT EXISTS idx_royalties_source ON royalty_entries(source, period);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(spent_on);
 CREATE INDEX IF NOT EXISTS idx_events_title ON inventory_events(title_id, happened_on);
+
+CREATE TABLE IF NOT EXISTS expense_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+    original_name TEXT NOT NULL,
+    stored_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL DEFAULT '',
+    byte_size INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_expense_attachments_expense ON expense_attachments(expense_id);
+
+CREATE TABLE IF NOT EXISTS expense_vendors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS expense_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS expense_books (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at TEXT NOT NULL
+);
 """
 
 SEEDED_LOCATIONS = (
@@ -93,6 +129,25 @@ SEEDED_LOCATIONS = (
     ("Barrington Books", "store", 2),
     ("TikTok Shop", "shop", 3),
 )
+
+DEFAULT_EXPENSE_CATEGORIES = (
+    ("software", "Software"),
+    ("advertising", "Advertising"),
+    ("printing", "Printing"),
+    ("shipping", "Shipping"),
+    ("professional", "Professional services"),
+    ("domain", "Domain / web"),
+    ("supplies", "Supplies"),
+    ("other", "Other"),
+    ("internet", "Internet"),
+    ("publishing", "Publishing"),
+    ("mobile-phone", "Mobile Phone"),
+    ("utilities", "Utilities"),
+)
+
+ALLOWED_RECEIPT_EXTS = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".tif", ".tiff", ".heic"}
+MAX_RECEIPT_BYTES = 25 * 1024 * 1024
+GENERAL_BOOK = "General"
 
 
 def utcnow() -> str:
@@ -122,6 +177,7 @@ def connect() -> Iterator[sqlite3.Connection]:
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
+        _migrate_expense_columns(conn)
         for name, kind, sort_order in SEEDED_LOCATIONS:
             conn.execute(
                 """
@@ -132,6 +188,9 @@ def init_db() -> None:
                 (name, kind, sort_order),
             )
     _load_expense_seed_if_empty()
+    _backfill_imported_expense_details()
+    with connect() as conn:
+        _ensure_expense_catalogs(conn)
 
 
 def _require_currency(currency: str) -> str:
@@ -165,7 +224,8 @@ def _require_period(value: str) -> str:
 def list_expenses() -> list[dict[str, Any]]:
     with connect() as conn:
         rows = conn.execute("SELECT * FROM expenses ORDER BY spent_on DESC, id DESC").fetchall()
-        return [_row(row) for row in rows]
+        attachments = _attachments_for(conn)
+        return [_public_expense(row, attachments.get(int(row["id"]), [])) for row in rows]
 
 
 def expense_totals() -> list[dict[str, Any]]:
@@ -179,6 +239,78 @@ def expense_totals() -> list[dict[str, Any]]:
             """
         ).fetchall()
         return [_row(row) for row in rows]
+
+
+def _migrate_expense_columns(conn: sqlite3.Connection) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(expenses)")}
+    if "payment_method" not in columns:
+        conn.execute("ALTER TABLE expenses ADD COLUMN payment_method TEXT NOT NULL DEFAULT ''")
+    if "write_off_percent" not in columns:
+        conn.execute("ALTER TABLE expenses ADD COLUMN write_off_percent INTEGER NOT NULL DEFAULT 100")
+
+
+def _write_off_percent(value: Any, default: int = 100) -> int:
+    if value is None or value == "":
+        return default
+    text = str(value).strip().rstrip("%")
+    try:
+        percent = int(round(float(text)))
+    except ValueError as exc:
+        raise ValueError(f"Invalid write-off percent: {value}") from exc
+    if percent < 0 or percent > 100:
+        raise ValueError("Write-off percent must be between 0 and 100.")
+    return percent
+
+
+def _dollars(cents: int) -> str:
+    sign = "-" if int(cents) < 0 else ""
+    cents = abs(int(cents))
+    return f"{sign}{cents // 100}.{cents % 100:02d}"
+
+
+def _slug(label: str) -> str:
+    text = re.sub(r"[^a-z0-9]+", "-", label.strip().lower()).strip("-")
+    return text or "item"
+
+
+def _safe_filename(name: str) -> str:
+    base = Path(name or "receipt").name
+    base = re.sub(r"[^A-Za-z0-9._-]+", "-", base).strip(".-") or "receipt"
+    return base[:160]
+
+
+def _mime_for(name: str, given: str = "") -> str:
+    if given and given != "application/octet-stream":
+        return given
+    return {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".pdf": "application/pdf",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".heic": "image/heic",
+    }.get(Path(name).suffix.lower(), given or "")
+
+
+def _using_primary_db() -> bool:
+    return db_path().resolve() == (DATA_DIR / "finances.db").resolve()
+
+
+def receipt_root() -> Path:
+    root = db_path().resolve().parent / "receipts"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _attachment_abs(stored_path: str) -> Path:
+    root = receipt_root().resolve()
+    path = (root / stored_path).resolve()
+    if path != root and root not in path.parents:
+        raise ValueError("Receipt path is outside the receipt folder.")
+    return path
 
 
 def _expense_from_fields(fields: dict[str, Any], *, partial: bool) -> dict[str, Any]:
@@ -207,20 +339,101 @@ def _expense_from_fields(fields: dict[str, Any], *, partial: bool) -> dict[str, 
         data["title"] = str(fields.get("title", "") or "").strip()
     if not partial or "notes" in fields:
         data["notes"] = str(fields.get("notes", "") or "").strip()
+    if not partial or "payment_method" in fields:
+        data["payment_method"] = str(fields.get("payment_method") or "").strip()
+    if not partial or "write_off_percent" in fields:
+        data["write_off_percent"] = _write_off_percent(fields.get("write_off_percent", 100))
     return data
+
+
+def _attachment_public(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": int(row["id"]),
+        "original_name": row["original_name"],
+        "mime_type": row["mime_type"] or "",
+        "byte_size": int(row["byte_size"] or 0),
+    }
+
+
+def _attachments_for(conn: sqlite3.Connection, expense_id: Optional[int] = None) -> dict[int, list[dict[str, Any]]]:
+    if expense_id is None:
+        rows = conn.execute(
+            "SELECT id, expense_id, original_name, mime_type, byte_size FROM expense_attachments ORDER BY id"
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT id, expense_id, original_name, mime_type, byte_size
+            FROM expense_attachments WHERE expense_id = ? ORDER BY id
+            """,
+            (expense_id,),
+        ).fetchall()
+    grouped: dict[int, list[dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(int(row["expense_id"]), []).append(_attachment_public(row))
+    return grouped
+
+
+def _public_expense(row: sqlite3.Row, attachments: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    data = _row(row)
+    percent = _write_off_percent(data.get("write_off_percent"), default=100)
+    cents = int(data["amount_cents"])
+    deducted = int(round(cents * percent / 100))
+    files = attachments or []
+    data["payment_method"] = data.get("payment_method") or ""
+    data["write_off_percent"] = percent
+    data["write_off_cents"] = deducted
+    data["write_off_amount"] = _dollars(deducted)
+    data["amount"] = _dollars(cents)
+    data["book_title"] = data.get("title") or GENERAL_BOOK
+    data["attachments"] = files
+    data["receipt_count"] = len(files)
+    return data
+
+
+def _expense_by_id(conn: sqlite3.Connection, expense_id: int) -> dict[str, Any]:
+    row = conn.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+    if row is None:
+        raise ValueError("Expense not found.")
+    files = _attachments_for(conn, expense_id).get(expense_id, [])
+    return _public_expense(row, files)
+
+
+def _remember_expense_choices(conn: sqlite3.Connection, data: dict[str, Any]) -> None:
+    payee = str(data.get("payee") or "").strip()
+    if payee:
+        conn.execute(
+            "INSERT INTO expense_vendors (name, created_at) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
+            (payee, utcnow()),
+        )
+    category = str(data.get("category") or "").strip()
+    if category:
+        _ensure_category(conn, category)
+    title = str(data.get("title") or "").strip()
+    if title:
+        conn.execute(
+            "INSERT INTO expense_books (name, created_at) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
+            (title, utcnow()),
+        )
 
 
 _EXPENSE_INSERT = """
 INSERT INTO expenses (
-    spent_on, payee, category, description, amount_cents, currency, title, notes, created_at
+    spent_on, payee, category, description, amount_cents, currency, title, notes,
+    payment_method, write_off_percent, created_at
 ) VALUES (
-    :spent_on, :payee, :category, :description, :amount_cents, :currency, :title, :notes, :created_at
+    :spent_on, :payee, :category, :description, :amount_cents, :currency, :title, :notes,
+    :payment_method, :write_off_percent, :created_at
 )
 """
 
 
 def _expense_seed_path():
     return ROOT / "seeds" / "expenses.json"
+
+
+def _details_marker() -> Path:
+    return DATA_DIR / ".expense-details-imported"
 
 
 def create_expense(fields: dict[str, Any]) -> dict[str, Any]:
@@ -237,8 +450,8 @@ def create_expenses(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     with connect() as conn:
         for data in prepared:
             cur = conn.execute(_EXPENSE_INSERT, data)
-            row = conn.execute("SELECT * FROM expenses WHERE id = ?", (cur.lastrowid,)).fetchone()
-            created.append(_row(row))
+            _remember_expense_choices(conn, data)
+            created.append(_expense_by_id(conn, int(cur.lastrowid)))
     return created
 
 
@@ -247,7 +460,7 @@ def _load_expense_seed_if_empty() -> None:
 
     Test databases and any FINANCES_DB override stay empty until records are entered.
     """
-    if db_path().resolve() != (DATA_DIR / "finances.db").resolve():
+    if not _using_primary_db():
         return
     seed_path = _expense_seed_path()
     if not seed_path.is_file():
@@ -262,6 +475,11 @@ def _load_expense_seed_if_empty() -> None:
     create_expenses(payload)
 
 
+def get_expense(expense_id: int) -> dict[str, Any]:
+    with connect() as conn:
+        return _expense_by_id(conn, expense_id)
+
+
 def update_expense(expense_id: int, fields: dict[str, Any]) -> dict[str, Any]:
     data = _expense_from_fields(fields, partial=True)
     if not data:
@@ -272,15 +490,300 @@ def update_expense(expense_id: int, fields: dict[str, Any]) -> dict[str, Any]:
         cur = conn.execute(f"UPDATE expenses SET {assignments} WHERE id = :id", data)
         if cur.rowcount == 0:
             raise ValueError("Expense not found.")
-        row = conn.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
-        return _row(row)
+        _remember_expense_choices(conn, data)
+        return _expense_by_id(conn, expense_id)
 
 
 def delete_expense(expense_id: int) -> None:
     with connect() as conn:
-        cur = conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
-        if cur.rowcount == 0:
+        row = conn.execute("SELECT id FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+        if row is None:
             raise ValueError("Expense not found.")
+        stored = [
+            item["stored_path"]
+            for item in conn.execute(
+                "SELECT stored_path FROM expense_attachments WHERE expense_id = ?",
+                (expense_id,),
+            ).fetchall()
+        ]
+        conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    for rel in stored:
+        path = _attachment_abs(rel)
+        if path.is_file():
+            path.unlink()
+    folder = receipt_root() / str(expense_id)
+    if folder.is_dir():
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def _insert_attachment(
+    conn: sqlite3.Connection,
+    expense_id: int,
+    source: Path,
+    original_name: str,
+    mime_type: str = "",
+) -> None:
+    source = Path(source)
+    if not source.is_file():
+        raise ValueError(f"Receipt file is missing: {original_name or source.name}")
+    size = source.stat().st_size
+    if size > MAX_RECEIPT_BYTES:
+        raise ValueError("Receipt is larger than 25 MB.")
+    display = (original_name or source.name).strip() or source.name
+    ext = Path(display).suffix.lower() or source.suffix.lower()
+    if ext not in ALLOWED_RECEIPT_EXTS:
+        raise ValueError(f"Unsupported receipt type: {ext or 'unknown'}")
+    dest_dir = receipt_root() / str(expense_id)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    dest = dest_dir / f"{stamp}-{_safe_filename(display)}"
+    shutil.copy2(source, dest)
+    conn.execute(
+        """
+        INSERT INTO expense_attachments (
+            expense_id, original_name, stored_path, mime_type, byte_size, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (expense_id, display[:200], f"{expense_id}/{dest.name}", _mime_for(display, mime_type), size, utcnow()),
+    )
+
+
+def add_attachment(expense_id: int, source: Path, original_name: str, mime_type: str = "") -> dict[str, Any]:
+    with connect() as conn:
+        found = conn.execute("SELECT id FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+        if found is None:
+            raise ValueError("Expense not found.")
+        _insert_attachment(conn, expense_id, source, original_name, mime_type)
+        return _expense_by_id(conn, expense_id)
+
+
+def get_attachment(attachment_id: int) -> dict[str, Any]:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM expense_attachments WHERE id = ?", (attachment_id,)).fetchone()
+        if row is None:
+            raise ValueError("Receipt not found.")
+        data = dict(row)
+        data["path"] = _attachment_abs(row["stored_path"])
+        return data
+
+
+def delete_attachment(attachment_id: int) -> dict[str, Any]:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM expense_attachments WHERE id = ?", (attachment_id,)).fetchone()
+        if row is None:
+            raise ValueError("Receipt not found.")
+        expense_id = int(row["expense_id"])
+        stored = row["stored_path"]
+        conn.execute("DELETE FROM expense_attachments WHERE id = ?", (attachment_id,))
+        expense = _expense_by_id(conn, expense_id)
+    path = _attachment_abs(stored)
+    if path.is_file():
+        path.unlink()
+    return expense
+
+
+def _ensure_category(conn: sqlite3.Connection, label: str, slug: Optional[str] = None) -> None:
+    label = label.strip()
+    if not label:
+        return
+    existing = conn.execute(
+        "SELECT id FROM expense_categories WHERE label = ? COLLATE NOCASE",
+        (label,),
+    ).fetchone()
+    if existing:
+        return
+    base = slug or _slug(label)
+    candidate = base
+    number = 2
+    while conn.execute("SELECT 1 FROM expense_categories WHERE slug = ?", (candidate,)).fetchone():
+        candidate = f"{base}-{number}"
+        number += 1
+    conn.execute(
+        "INSERT INTO expense_categories (slug, label, created_at) VALUES (?, ?, ?)",
+        (candidate, label, utcnow()),
+    )
+
+
+def _ensure_expense_catalogs(conn: sqlite3.Connection) -> None:
+    for slug, label in DEFAULT_EXPENSE_CATEGORIES:
+        _ensure_category(conn, label, slug)
+    for row in conn.execute("SELECT DISTINCT category FROM expenses WHERE trim(category) != ''"):
+        _ensure_category(conn, row["category"])
+    for row in conn.execute("SELECT DISTINCT payee FROM expenses WHERE trim(payee) != ''"):
+        conn.execute(
+            "INSERT INTO expense_vendors (name, created_at) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
+            (row["payee"], utcnow()),
+        )
+    for row in conn.execute("SELECT DISTINCT title FROM expenses WHERE trim(title) != ''"):
+        conn.execute(
+            "INSERT INTO expense_books (name, created_at) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
+            (row["title"], utcnow()),
+        )
+
+
+def list_expense_vendors() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute("SELECT id, name FROM expense_vendors ORDER BY name COLLATE NOCASE").fetchall()
+        return [_row(row) for row in rows]
+
+
+def add_expense_vendor(name: str) -> dict[str, Any]:
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError("Vendor name is required.")
+    with connect() as conn:
+        try:
+            cur = conn.execute(
+                "INSERT INTO expense_vendors (name, created_at) VALUES (?, ?)",
+                (cleaned, utcnow()),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(f"{cleaned} is already a vendor.") from exc
+        row = conn.execute("SELECT id, name FROM expense_vendors WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return _row(row)
+
+
+def delete_expense_vendor(vendor_id: int) -> None:
+    with connect() as conn:
+        cur = conn.execute("DELETE FROM expense_vendors WHERE id = ?", (vendor_id,))
+        if cur.rowcount == 0:
+            raise ValueError("Vendor not found.")
+
+
+def list_expense_categories() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, slug, label FROM expense_categories ORDER BY label COLLATE NOCASE"
+        ).fetchall()
+        return [_row(row) for row in rows]
+
+
+def add_expense_category(label: str) -> dict[str, Any]:
+    cleaned = label.strip()
+    if not cleaned:
+        raise ValueError("Category name is required.")
+    with connect() as conn:
+        _ensure_category(conn, cleaned)
+        row = conn.execute(
+            "SELECT id, slug, label FROM expense_categories WHERE label = ? COLLATE NOCASE",
+            (cleaned,),
+        ).fetchone()
+        return _row(row)
+
+
+def delete_expense_category(category_id: int) -> None:
+    with connect() as conn:
+        remaining = conn.execute("SELECT COUNT(*) AS n FROM expense_categories").fetchone()
+        if int(remaining["n"]) <= 1:
+            raise ValueError("Keep at least one category.")
+        cur = conn.execute("DELETE FROM expense_categories WHERE id = ?", (category_id,))
+        if cur.rowcount == 0:
+            raise ValueError("Category not found.")
+
+
+def list_expense_books() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute("SELECT id, name FROM expense_books ORDER BY name COLLATE NOCASE").fetchall()
+        return [_row(row) for row in rows]
+
+
+def add_expense_book(name: str) -> dict[str, Any]:
+    cleaned = name.strip()
+    if not cleaned or cleaned.lower() == GENERAL_BOOK.lower():
+        raise ValueError("Enter a book title.")
+    with connect() as conn:
+        try:
+            cur = conn.execute(
+                "INSERT INTO expense_books (name, created_at) VALUES (?, ?)",
+                (cleaned, utcnow()),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(f"{cleaned} is already a book.") from exc
+        row = conn.execute("SELECT id, name FROM expense_books WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return _row(row)
+
+
+def _seed_receipt_path(rel: str) -> Path:
+    seed_root = (ROOT / "seeds").resolve()
+    path = (seed_root / rel).resolve()
+    if seed_root not in path.parents:
+        raise ValueError("Receipt seed path is outside the seed folder.")
+    return path
+
+
+def _same_imported_expense(row: sqlite3.Row, item: dict[str, Any]) -> bool:
+    def clean(value: Any) -> str:
+        return str(value or "").strip()
+
+    return (
+        clean(row["spent_on"]) == clean(item.get("spent_on"))
+        and clean(row["payee"]) == clean(item.get("payee"))
+        and clean(row["category"]) == clean(item.get("category"))
+        and clean(row["description"]) == clean(item.get("description"))
+        and int(row["amount_cents"]) == int(item.get("amount_cents"))
+        and clean(row["currency"] or "USD").upper() == clean(item.get("currency") or "USD").upper()
+        and clean(row["title"]) == clean(item.get("title"))
+        and clean(row["notes"]) == clean(item.get("notes"))
+    )
+
+
+def _backfill_imported_expense_details() -> None:
+    """Fill payment method, write-off, and receipts on the imported ledger once."""
+    if not _using_primary_db():
+        return
+    marker = _details_marker()
+    if marker.is_file():
+        return
+    seed_path = _expense_seed_path()
+    if not seed_path.is_file():
+        return
+    payload = json.loads(seed_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list) or not payload:
+        return
+    remaining = list(payload)
+    matched = 0
+    with connect() as conn:
+        rows = list(conn.execute("SELECT * FROM expenses ORDER BY id"))
+        if not rows:
+            return
+        for row in rows:
+            match_at = next(
+                (index for index, item in enumerate(remaining) if _same_imported_expense(row, item)),
+                None,
+            )
+            if match_at is None:
+                continue
+            item = remaining.pop(match_at)
+            matched += 1
+            conn.execute(
+                "UPDATE expenses SET payment_method = ?, write_off_percent = ? WHERE id = ?",
+                (
+                    str(item.get("payment_method") or ""),
+                    _write_off_percent(item.get("write_off_percent", 100)),
+                    row["id"],
+                ),
+            )
+            count = int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM expense_attachments WHERE expense_id = ?",
+                    (row["id"],),
+                ).fetchone()["n"]
+            )
+            if count:
+                continue
+            for receipt in item.get("receipts") or []:
+                rel = str(receipt.get("file") or "")
+                if not rel:
+                    continue
+                _insert_attachment(
+                    conn,
+                    int(row["id"]),
+                    _seed_receipt_path(rel),
+                    str(receipt.get("original_name") or Path(rel).name),
+                    str(receipt.get("mime_type") or ""),
+                )
+    if matched:
+        marker.write_text("imported\n", encoding="utf-8")
 
 
 # --- Royalties ---

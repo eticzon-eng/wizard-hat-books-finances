@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -21,6 +27,8 @@ class ExpenseBody(BaseModel):
     currency: str = "USD"
     title: str = ""
     notes: str = ""
+    payment_method: str = ""
+    write_off_percent: int = 100
 
 
 class ExpensePatch(BaseModel):
@@ -32,6 +40,16 @@ class ExpensePatch(BaseModel):
     currency: Optional[str] = None
     title: Optional[str] = None
     notes: Optional[str] = None
+    payment_method: Optional[str] = None
+    write_off_percent: Optional[int] = None
+
+
+class ExpenseNameBody(BaseModel):
+    name: str = ""
+
+
+class ExpenseCategoryBody(BaseModel):
+    label: str = ""
 
 
 class RoyaltyBody(BaseModel):
@@ -106,9 +124,36 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _reveal_in_file_manager(path: Path) -> None:
+    if sys.platform == "darwin":
+        subprocess.run(["open", "-R", str(path)], check=True)
+    elif sys.platform == "win32":
+        subprocess.run(["explorer", f"/select,{path}"], check=True)
+    else:
+        subprocess.run(["xdg-open", str(path.parent)], check=True)
+
+
+def _expense_page() -> dict[str, Any]:
+    return {
+        "expenses": db.list_expenses(),
+        "totals": db.expense_totals(),
+        "vendors": db.list_expense_vendors(),
+        "categories": db.list_expense_categories(),
+        "books": db.list_expense_books(),
+    }
+
+
 @app.get("/api/expenses")
 def get_expenses() -> dict[str, Any]:
-    return {"expenses": db.list_expenses(), "totals": db.expense_totals()}
+    return _expense_page()
+
+
+@app.get("/api/expenses/{expense_id}")
+def get_expense(expense_id: int) -> dict[str, Any]:
+    try:
+        return db.get_expense(expense_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
 
 
 @app.post("/api/expenses")
@@ -135,6 +180,118 @@ def remove_expense(expense_id: int) -> dict[str, bool]:
     except ValueError as exc:
         raise _bad(exc) from exc
     return {"ok": True}
+
+
+@app.post("/api/expense-vendors")
+def post_expense_vendor(body: ExpenseNameBody) -> dict[str, Any]:
+    try:
+        vendor = db.add_expense_vendor(body.name)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {**_expense_page(), "vendor": vendor}
+
+
+@app.delete("/api/expense-vendors/{vendor_id}")
+def remove_expense_vendor(vendor_id: int) -> dict[str, Any]:
+    try:
+        db.delete_expense_vendor(vendor_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return _expense_page()
+
+
+@app.post("/api/expense-categories")
+def post_expense_category(body: ExpenseCategoryBody) -> dict[str, Any]:
+    try:
+        category = db.add_expense_category(body.label)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {**_expense_page(), "category": category}
+
+
+@app.delete("/api/expense-categories/{category_id}")
+def remove_expense_category(category_id: int) -> dict[str, Any]:
+    try:
+        db.delete_expense_category(category_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return _expense_page()
+
+
+@app.post("/api/expense-books")
+def post_expense_book(body: ExpenseNameBody) -> dict[str, Any]:
+    try:
+        book = db.add_expense_book(body.name)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {**_expense_page(), "book": book}
+
+
+@app.post("/api/expenses/{expense_id}/attachments")
+async def upload_expense_receipts(
+    expense_id: int,
+    files: list[UploadFile] = File(...),
+) -> dict[str, Any]:
+    last: Optional[dict[str, Any]] = None
+    saved = 0
+    try:
+        for upload in files:
+            filename = upload.filename or "receipt.bin"
+            suffix = Path(filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                shutil.copyfileobj(upload.file, tmp)
+                tmp_path = Path(tmp.name)
+            try:
+                last = db.add_attachment(expense_id, tmp_path, filename, upload.content_type or "")
+                saved += 1
+            finally:
+                tmp_path.unlink(missing_ok=True)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    if not saved:
+        raise _bad(ValueError("Attach at least one receipt or invoice."))
+    return last or db.get_expense(expense_id)
+
+
+@app.get("/api/expense-receipts/{attachment_id}")
+def download_expense_receipt(attachment_id: int) -> FileResponse:
+    try:
+        att = db.get_attachment(attachment_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    path = att["path"]
+    if not path.is_file():
+        raise HTTPException(404, "Receipt file is missing.")
+    return FileResponse(
+        path,
+        filename=att["original_name"],
+        media_type=att["mime_type"] or None,
+        content_disposition_type="inline",
+    )
+
+
+@app.delete("/api/expense-receipts/{attachment_id}")
+def remove_expense_receipt(attachment_id: int) -> dict[str, Any]:
+    try:
+        return db.delete_attachment(attachment_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/expense-receipts/{attachment_id}/reveal")
+def reveal_expense_receipt(attachment_id: int) -> dict[str, Any]:
+    try:
+        att = db.get_attachment(attachment_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    path = att["path"]
+    if not path.is_file():
+        raise HTTPException(404, "Receipt file is missing.")
+    try:
+        _reveal_in_file_manager(path)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise HTTPException(500, f"Could not open Finder: {exc}") from exc
+    return {"ok": True, "path": str(path)}
 
 
 @app.get("/api/royalties")

@@ -4,7 +4,7 @@ Local site for Wizard Hat Books expenses, Amazon KDP royalties, IngramSpark roya
 
 This repository is separate from the art library and the author site (`eticzon-eng/book-art-library`) and from the tennis league (`eticzon-eng/fantasy_league`). Artwork and the public author site stay in the art library.
 
-Book Art Library expenses are in `seeds/expenses.json`. Starting the site creates `data/finances.db` and, when that database has no expenses yet, loads the seed. The database file stays on this computer. Inventory starts with four locations: Home, InkFish Books, Barrington Books, and TikTok Shop.
+Book Art Library expenses are in `seeds/expenses.json`, with receipt files under `seeds/receipts/`. Starting the site creates `data/finances.db` and, when that database has no expenses yet, loads the seed. An existing copy of those rows is filled in with payment method, tax write-off percent, and receipts. The database file stays on this computer. Inventory starts with four locations: Home, InkFish Books, Barrington Books, and TikTok Shop.
 
 ## Run locally
 
@@ -24,7 +24,7 @@ The database is `data/finances.db` on this computer. The server listens on local
 
 ## Expenses
 
-Record a date, payee, category, description, amount, currency, optional book title, and notes. Search, edit, and delete from the Expenses tab. Totals are kept per currency.
+The Expenses tab matches the Book Art Library ledger. Filter by year, book, vendor, category, and write-off, search, and print the report. Click a row to open it. Add and edit in that window: date, vendor, category, description, amount, currency, book (General when it is not tied to a book), payment method, tax write-off percent, notes, and receipt files. Delete is in that window. Totals stay per currency, and the tax write-off is the deductible part of each amount.
 
 ## Royalties
 

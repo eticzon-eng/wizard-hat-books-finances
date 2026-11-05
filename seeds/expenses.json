@@ -7,7 +7,16 @@
     "amount_cents": 20544,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-32-44.png",
+        "file": "receipts/4/pasted-receipt-2026-09-21-19-32-44.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-05-11",
@@ -17,7 +26,16 @@
     "amount_cents": 2174,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-35-24.png",
+        "file": "receipts/5/pasted-receipt-2026-09-21-19-35-24.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-05-15",
@@ -27,7 +45,16 @@
     "amount_cents": 4299,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-36-56.png",
+        "file": "receipts/6/pasted-receipt-2026-09-21-19-36-56.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-05-21",
@@ -37,7 +64,16 @@
     "amount_cents": 6427,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-38-04.png",
+        "file": "receipts/7/pasted-receipt-2026-09-21-19-38-04.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-06-09",
@@ -47,7 +83,16 @@
     "amount_cents": 8499,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-38-55.png",
+        "file": "receipts/8/pasted-receipt-2026-09-21-19-38-55.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-06",
@@ -57,7 +102,16 @@
     "amount_cents": 2140,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-40-27.png",
+        "file": "receipts/9/pasted-receipt-2026-09-21-19-40-27.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-13",
@@ -67,7 +121,16 @@
     "amount_cents": 1046,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-41-11.png",
+        "file": "receipts/10/pasted-receipt-2026-09-21-19-41-11.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-04-28",
@@ -77,7 +140,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": "50% write off"
+    "notes": "50% write off",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-46-50.png",
+        "file": "receipts/11/pasted-receipt-2026-09-21-19-46-50.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-05-28",
@@ -87,7 +159,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-19-59-26.png",
+        "file": "receipts/14/pasted-receipt-2026-09-21-19-59-26.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-06-29",
@@ -97,7 +178,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-20-04-56.png",
+        "file": "receipts/15/pasted-receipt-2026-09-21-20-04-56.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-28",
@@ -107,7 +197,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-20-05-24.png",
+        "file": "receipts/16/pasted-receipt-2026-09-21-20-05-24.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-28",
@@ -117,7 +216,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Checking Debit Card",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-20-05-47.png",
+        "file": "receipts/17/pasted-receipt-2026-09-21-20-05-47.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-06",
@@ -127,7 +235,16 @@
     "amount_cents": 4173,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 30,
+    "receipts": [
+      {
+        "original_name": "IVCHAI3QNLCRGORMXJGPQOD6SVXA.pdf",
+        "file": "receipts/18/IVCHAI3QNLCRGORMXJGPQOD6SVXA.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-04",
@@ -137,7 +254,16 @@
     "amount_cents": 26749,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-20-15-13.png",
+        "file": "receipts/19/pasted-receipt-2026-09-21-20-15-13.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-12",
@@ -147,7 +273,16 @@
     "amount_cents": 1046,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "b8a7bf68-9829-5af2-a199-0e0f58a1ade3.pdf",
+        "file": "receipts/20/b8a7bf68-9829-5af2-a199-0e0f58a1ade3.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-15",
@@ -157,7 +292,16 @@
     "amount_cents": 1046,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "6ea9c4cd-35eb-5ebe-a897-a79e5179e919.pdf",
+        "file": "receipts/21/6ea9c4cd-35eb-5ebe-a897-a79e5179e919.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-25",
@@ -167,7 +311,16 @@
     "amount_cents": 7490,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "Sticker_Mule.pdf",
+        "file": "receipts/22/Sticker_Mule.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-12",
@@ -177,7 +330,16 @@
     "amount_cents": 28000,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "invoice-i9987.pdf",
+        "file": "receipts/23/invoice-i9987.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-12",
@@ -187,7 +349,16 @@
     "amount_cents": 4995,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "invoice-i9988.pdf",
+        "file": "receipts/24/invoice-i9988.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-12",
@@ -197,7 +368,16 @@
     "amount_cents": 105,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "18921137HPA26.pdf",
+        "file": "receipts/25/18921137HPA26.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-21",
@@ -207,7 +387,16 @@
     "amount_cents": 2239,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "19298257HPA26.pdf",
+        "file": "receipts/26/19298257HPA26.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-21",
@@ -217,7 +406,16 @@
     "amount_cents": 2000,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "19298607HPA26.pdf",
+        "file": "receipts/27/19298607HPA26.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-28",
@@ -227,7 +425,16 @@
     "amount_cents": 11663,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "Sticker_Mule2.pdf",
+        "file": "receipts/28/Sticker_Mule2.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-22",
@@ -237,7 +444,16 @@
     "amount_cents": 14400,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-20-47-58.png",
+        "file": "receipts/29/pasted-receipt-2026-09-21-20-47-58.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-15",
@@ -247,7 +463,16 @@
     "amount_cents": 29500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "bowker.pdf",
+        "file": "receipts/30/bowker.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-27",
@@ -257,7 +482,16 @@
     "amount_cents": 260260,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-21-21-02-02.png",
+        "file": "receipts/31/pasted-receipt-2026-09-21-21-02-02.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-07",
@@ -267,7 +501,16 @@
     "amount_cents": 2400,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Credit Card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-26-37.png",
+        "file": "receipts/32/pasted-receipt-2026-09-22-00-26-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-07",
@@ -277,7 +520,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-29-17.png",
+        "file": "receipts/33/pasted-receipt-2026-09-22-00-29-17.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-07",
@@ -287,7 +539,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-30-49.png",
+        "file": "receipts/34/pasted-receipt-2026-09-22-00-30-49.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-08",
@@ -297,7 +558,16 @@
     "amount_cents": 201,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-32-29.png",
+        "file": "receipts/35/pasted-receipt-2026-09-22-00-32-29.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-08",
@@ -307,7 +577,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-33-42.png",
+        "file": "receipts/36/pasted-receipt-2026-09-22-00-33-42.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-09",
@@ -317,7 +596,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-34-46.png",
+        "file": "receipts/37/pasted-receipt-2026-09-22-00-34-46.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-09",
@@ -327,7 +615,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-35-42.png",
+        "file": "receipts/38/pasted-receipt-2026-09-22-00-35-42.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-10",
@@ -337,7 +634,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-36-56.png",
+        "file": "receipts/39/pasted-receipt-2026-09-22-00-36-56.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-11",
@@ -347,7 +653,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-38-30.png",
+        "file": "receipts/40/pasted-receipt-2026-09-22-00-38-30.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-12",
@@ -357,7 +672,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-39-28.png",
+        "file": "receipts/41/pasted-receipt-2026-09-22-00-39-28.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-14",
@@ -367,7 +691,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-40-37.png",
+        "file": "receipts/42/pasted-receipt-2026-09-22-00-40-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-16",
@@ -377,7 +710,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-41-42.png",
+        "file": "receipts/43/pasted-receipt-2026-09-22-00-41-42.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-17",
@@ -387,7 +729,16 @@
     "amount_cents": 209,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-42-55.png",
+        "file": "receipts/44/pasted-receipt-2026-09-22-00-42-55.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-17",
@@ -397,7 +748,16 @@
     "amount_cents": 97,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-44-23.png",
+        "file": "receipts/45/pasted-receipt-2026-09-22-00-44-23.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-19",
@@ -407,7 +767,16 @@
     "amount_cents": 202,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-45-35.png",
+        "file": "receipts/46/pasted-receipt-2026-09-22-00-45-35.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-19",
@@ -417,7 +786,16 @@
     "amount_cents": 367,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "credit card",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-22-00-46-37.png",
+        "file": "receipts/47/pasted-receipt-2026-09-22-00-46-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-04-03",
@@ -427,7 +805,16 @@
     "amount_cents": 14743,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-04.03.2026.pdf",
+        "file": "receipts/48/My-Bill-04.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-05-03",
@@ -437,7 +824,16 @@
     "amount_cents": 9663,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-05.03.2026.pdf",
+        "file": "receipts/49/My-Bill-05.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-06-03",
@@ -447,7 +843,16 @@
     "amount_cents": 10339,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-06.03.2026.pdf",
+        "file": "receipts/50/My-Bill-06.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-07-03",
@@ -457,7 +862,16 @@
     "amount_cents": 10352,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-07.03.2026.pdf",
+        "file": "receipts/51/My-Bill-07.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-08-03",
@@ -467,7 +881,16 @@
     "amount_cents": 17587,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto Pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-08.03.2026.pdf",
+        "file": "receipts/52/My-Bill-08.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-03",
@@ -477,7 +900,16 @@
     "amount_cents": 11487,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto Pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "My-Bill-09.03.2026.pdf",
+        "file": "receipts/53/My-Bill-09.03.2026.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-21",
@@ -487,7 +919,16 @@
     "amount_cents": 221,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-13-56-37.png",
+        "file": "receipts/54/pasted-receipt-2026-09-24-13-56-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-21",
@@ -497,7 +938,16 @@
     "amount_cents": 272,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-13-57-31.png",
+        "file": "receipts/55/pasted-receipt-2026-09-24-13-57-31.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-22",
@@ -507,7 +957,16 @@
     "amount_cents": 342,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-13-58-09.png",
+        "file": "receipts/56/pasted-receipt-2026-09-24-13-58-09.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-22",
@@ -517,7 +976,16 @@
     "amount_cents": 3600,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-13-59-05.png",
+        "file": "receipts/57/pasted-receipt-2026-09-24-13-59-05.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-22",
@@ -527,7 +995,16 @@
     "amount_cents": 2400,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-13-59-55.png",
+        "file": "receipts/58/pasted-receipt-2026-09-24-13-59-55.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-23",
@@ -537,7 +1014,16 @@
     "amount_cents": 262,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-24-14-00-52.png",
+        "file": "receipts/59/pasted-receipt-2026-09-24-14-00-52.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-24",
@@ -547,7 +1033,16 @@
     "amount_cents": 62,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-26-00-39-35.png",
+        "file": "receipts/60/pasted-receipt-2026-09-26-00-39-35.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-24",
@@ -557,7 +1052,16 @@
     "amount_cents": 501,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-09-26-00-40-33.png",
+        "file": "receipts/61/pasted-receipt-2026-09-26-00-40-33.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-25",
@@ -567,7 +1071,16 @@
     "amount_cents": 511,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-02-13-47-22.png",
+        "file": "receipts/62/pasted-receipt-2026-10-02-13-47-22.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-25",
@@ -577,7 +1090,16 @@
     "amount_cents": 213,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-02-13-47-59.png",
+        "file": "receipts/63/pasted-receipt-2026-10-02-13-47-59.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-30",
@@ -587,7 +1109,16 @@
     "amount_cents": 1018,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-02-13-48-50.png",
+        "file": "receipts/64/pasted-receipt-2026-10-02-13-48-50.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-01",
@@ -597,7 +1128,16 @@
     "amount_cents": 3000,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-02-13-49-37.png",
+        "file": "receipts/65/pasted-receipt-2026-10-02-13-49-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-21",
@@ -607,7 +1147,16 @@
     "amount_cents": 11487,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-11-41.png",
+        "file": "receipts/66/pasted-receipt-2026-10-04-18-11-41.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-28",
@@ -617,7 +1166,16 @@
     "amount_cents": 9000,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Auto pay",
+    "write_off_percent": 50,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-13-00.png",
+        "file": "receipts/67/pasted-receipt-2026-10-04-18-13-00.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-01",
@@ -627,7 +1185,16 @@
     "amount_cents": 2981,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Debit",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-14-19.png",
+        "file": "receipts/68/pasted-receipt-2026-10-04-18-14-19.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-02",
@@ -637,7 +1204,16 @@
     "amount_cents": 200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-18-18.png",
+        "file": "receipts/69/pasted-receipt-2026-10-04-18-18-18.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-02",
@@ -647,7 +1223,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-19-10.png",
+        "file": "receipts/70/pasted-receipt-2026-10-04-18-19-10.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-02",
@@ -657,7 +1242,16 @@
     "amount_cents": 5400,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-19-58.png",
+        "file": "receipts/71/pasted-receipt-2026-10-04-18-19-58.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-02",
@@ -667,7 +1261,16 @@
     "amount_cents": 1304,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-21-48.png",
+        "file": "receipts/72/pasted-receipt-2026-10-04-18-21-48.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-03",
@@ -677,7 +1280,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-22-57.png",
+        "file": "receipts/73/pasted-receipt-2026-10-04-18-22-57.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-03",
@@ -687,7 +1299,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-23-42.png",
+        "file": "receipts/74/pasted-receipt-2026-10-04-18-23-42.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-03",
@@ -697,7 +1318,16 @@
     "amount_cents": 500,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-04-18-24-41.png",
+        "file": "receipts/75/pasted-receipt-2026-10-04-18-24-41.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-28",
@@ -707,7 +1337,16 @@
     "amount_cents": 1600,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "invoice.pdf",
+        "file": "receipts/76/invoice.pdf",
+        "mime_type": "application/pdf"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-09",
@@ -717,7 +1356,16 @@
     "amount_cents": 1961,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Debit",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-44-49.png",
+        "file": "receipts/77/pasted-receipt-2026-10-11-21-44-49.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-07",
@@ -727,7 +1375,16 @@
     "amount_cents": 9266,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "Debit",
+    "write_off_percent": 15,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-45-28.png",
+        "file": "receipts/78/pasted-receipt-2026-10-11-21-45-28.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-09-30",
@@ -737,7 +1394,16 @@
     "amount_cents": 19900,
     "currency": "USD",
     "title": "",
-    "notes": ""
+    "notes": "",
+    "payment_method": "debit",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-49-08.png",
+        "file": "receipts/79/pasted-receipt-2026-10-11-21-49-08.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-09",
@@ -747,7 +1413,16 @@
     "amount_cents": 2463,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-52-26.png",
+        "file": "receipts/80/pasted-receipt-2026-10-11-21-52-26.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-09",
@@ -757,7 +1432,16 @@
     "amount_cents": 1022,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-53-46.png",
+        "file": "receipts/81/pasted-receipt-2026-10-11-21-53-46.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-08",
@@ -767,7 +1451,16 @@
     "amount_cents": 2455,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-55-08.png",
+        "file": "receipts/82/pasted-receipt-2026-10-11-21-55-08.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-07",
@@ -777,7 +1470,16 @@
     "amount_cents": 2457,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-56-11.png",
+        "file": "receipts/83/pasted-receipt-2026-10-11-21-56-11.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-06",
@@ -787,7 +1489,16 @@
     "amount_cents": 1202,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-57-02.png",
+        "file": "receipts/84/pasted-receipt-2026-10-11-21-57-02.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -797,7 +1508,16 @@
     "amount_cents": 728,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-58-20.png",
+        "file": "receipts/85/pasted-receipt-2026-10-11-21-58-20.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -807,7 +1527,16 @@
     "amount_cents": 1200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-21-59-02.png",
+        "file": "receipts/86/pasted-receipt-2026-10-11-21-59-02.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -817,7 +1546,16 @@
     "amount_cents": 11900,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-22-00-22.png",
+        "file": "receipts/87/pasted-receipt-2026-10-11-22-00-22.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -827,7 +1565,16 @@
     "amount_cents": 1200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-22-01-53.png",
+        "file": "receipts/88/pasted-receipt-2026-10-11-22-01-53.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -837,7 +1584,16 @@
     "amount_cents": 1200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-22-02-36.png",
+        "file": "receipts/89/pasted-receipt-2026-10-11-22-02-36.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-05",
@@ -847,7 +1603,16 @@
     "amount_cents": 1200,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-11-22-03-50.png",
+        "file": "receipts/90/pasted-receipt-2026-10-11-22-03-50.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-10",
@@ -857,7 +1622,16 @@
     "amount_cents": 2463,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-29-01-05-13.png",
+        "file": "receipts/91/pasted-receipt-2026-10-29-01-05-13.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-12",
@@ -867,7 +1641,16 @@
     "amount_cents": 2460,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-29-01-06-53.png",
+        "file": "receipts/92/pasted-receipt-2026-10-29-01-06-53.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-12",
@@ -877,7 +1660,16 @@
     "amount_cents": 2462,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-29-01-08-28.png",
+        "file": "receipts/93/pasted-receipt-2026-10-29-01-08-28.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-13",
@@ -887,7 +1679,16 @@
     "amount_cents": 2463,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "CC",
+    "write_off_percent": 100,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-29-01-09-37.png",
+        "file": "receipts/94/pasted-receipt-2026-10-29-01-09-37.png",
+        "mime_type": "image/png"
+      }
+    ]
   },
   {
     "spent_on": "2026-10-20",
@@ -897,6 +1698,15 @@
     "amount_cents": 11515,
     "currency": "USD",
     "title": "Silas and the Wizard",
-    "notes": ""
+    "notes": "",
+    "payment_method": "debit",
+    "write_off_percent": 25,
+    "receipts": [
+      {
+        "original_name": "pasted-receipt-2026-10-29-01-12-22.png",
+        "file": "receipts/95/pasted-receipt-2026-10-29-01-12-22.png",
+        "mime_type": "image/png"
+      }
+    ]
   }
 ]
