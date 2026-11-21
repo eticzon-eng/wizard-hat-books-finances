@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders · Wizard Hat Books Finances</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Wizard Hat Books</strong>
+      <span class="muted">Finances — expenses, royalties, copies on hand, and orders</span>
+    </div>
+    <p class="muted local-note">Saved on this computer. No store login.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a class="tab" href="/expenses">Expenses</a>
+    <a class="tab" href="/royalties">Royalties</a>
+    <a class="tab" href="/inventory">Inventory</a>
+    <a class="tab active" aria-current="page" href="/orders">Orders</a>
+    <a class="tab" href="/refunds">Refunds</a>
+  </nav>
+
+  <p id="message" class="message" role="status"></p>
+
+  <main>
+    <section id="view-orders" class="view">
+      <p class="muted section-hint">Stripe only pays these orders out. It does not keep the shipment or the tracking number. A blank fee on a US dollar sale estimates 2.9% + $0.30. A paid test checkout takes the copies off Home and leaves shipping, tracking, and refunds for you to enter. An order you add here stays on the shelf until you mark it shipped.</p>
+      <div id="orderStats" class="summary"></div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" id="newOrderBtn">Add order</button>
+        <select id="orderShipFilter" aria-label="Shipment">
+          <option value="">All orders</option>
+          <option value="not_shipped">Not shipped</option>
+          <option value="shipped">Shipped</option>
+          <option value="refund_open">Open refund request</option>
+        </select>
+        <input id="orderSearch" type="search" placeholder="Search buyer, tracking, title">
+        <p class="muted" id="orderCount"></p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Buyer</th>
+              <th>Title</th>
+              <th class="num">Copies</th>
+              <th>Shelf</th>
+              <th>Shipment</th>
+              <th>Tracking</th>
+              <th class="num">Sale</th>
+              <th class="num">Stripe fee</th>
+              <th class="num">After fee</th>
+            </tr>
+          </thead>
+          <tbody id="orderRows"></tbody>
+        </table>
+      </div>
+      <p id="orderEmpty" class="muted empty hidden">No orders yet.</p>
+    </section>
+  </main>
+
+  <dialog id="orderDialog">
+    <form method="dialog" class="dialog-body" id="orderForm">
+      <header class="dialog-header">
+        <h2 id="orderDialogTitle">Order</h2>
+        <button type="submit" class="btn" value="cancel">Close</button>
+      </header>
+      <div class="expense-body">
+        <input type="hidden" id="orderEditId">
+        <p class="muted">Marking this shipped takes the copies off the shelf and counts them as a Website sale. Stripe is only the payout.</p>
+        <div class="expense-form-grid">
+          <label class="field">
+            <span>Date</span>
+            <input id="orderDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>Buyer</span>
+            <input id="orderBuyer" type="text" required>
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="orderEmail" type="text" inputmode="email" placeholder="Optional">
+          </label>
+          <label class="field">
+            <span>Currency</span>
+            <input id="orderCurrency" type="text" value="USD" maxlength="3" required>
+          </label>
+          <label class="field expense-span-2">
+            <span>Ship to</span>
+            <textarea id="orderShipTo" rows="3" placeholder="Name and address"></textarea>
+          </label>
+          <label class="field">
+            <span>Title</span>
+            <select id="orderTitle" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="orderQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Copies leave</span>
+            <select id="orderFrom" required></select>
+          </label>
+          <p class="muted expense-span-2" id="orderStockHint"></p>
+          <label class="field">
+            <span>Sale total</span>
+            <input id="orderAmount" type="text" inputmode="decimal" placeholder="36.99" required>
+          </label>
+          <label class="field">
+            <span>Stripe fee</span>
+            <input id="orderFee" type="text" inputmode="decimal" placeholder="Blank uses 2.9% + $0.30">
+            <p class="muted" id="orderFeeHint"></p>
+          </label>
+          <label class="field expense-span-2">
+            <span>Notes</span>
+            <textarea id="orderNotes" rows="2"></textarea>
+          </label>
+          <label class="check-row expense-span-2">
+            <input id="orderShipped" type="checkbox">
+            <span>Shipped</span>
+          </label>
+          <label class="field">
+            <span>Ship date</span>
+            <input id="orderShippedOn" type="date">
+          </label>
+          <label class="field">
+            <span>Carrier</span>
+            <input id="orderCarrier" type="text" placeholder="USPS, UPS, Canada Post">
+          </label>
+          <label class="field expense-span-2">
+            <span>Tracking number</span>
+            <input id="orderTracking" type="text" placeholder="Optional until you have it">
+          </label>
+        </div>
+        <div class="button-row">
+          <button type="button" class="btn primary" id="saveOrderBtn">Save</button>
+          <button type="button" class="btn" id="orderRefundBtn">Add refund request</button>
+          <button type="button" class="btn danger hidden" id="deleteOrderBtn">Delete</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+  <script src="/app.js"></script>
+  <script src="/orders.js"></script>
+</body>
+</html>

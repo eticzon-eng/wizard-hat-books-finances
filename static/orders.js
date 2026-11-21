@@ -128,7 +128,7 @@ function shipmentBadges(order) {
 }
 
 function renderOrders() {
-  if (!state.orderData) return;
+  if (!state.orderData || !$("orderRows")) return;
   renderOrderStats($("orderStats"));
   const rows = visibleOrders();
   const body = $("orderRows");
@@ -173,7 +173,6 @@ function renderOrders() {
     tr.addEventListener("click", () => openOrder(order));
     body.appendChild(tr);
   });
-  fillRefundOrders();
 }
 
 function refundRoom(order) {
@@ -223,7 +222,7 @@ function visibleRefunds() {
 }
 
 function renderRefunds() {
-  if (!state.orderData) return;
+  if (!state.orderData || !$("refundRows")) return;
   renderOrderStats($("refundStats"));
   const body = $("refundRows");
   clear(body);
@@ -404,26 +403,11 @@ async function saveOrder() {
 async function loadOrders() {
   state.orderData = await api("/api/orders");
   renderOrders();
+  if ($("refundOrder")) fillRefundOrders();
   renderRefunds();
 }
 
-document.addEventListener("finances-view", (event) => {
-  if (event.detail === "orders" || event.detail === "refunds") {
-    loadOrders().catch((error) => setMessage(error.message, true));
-  }
-  if (event.detail === "inventory") {
-    loadInventory().catch((error) => setMessage(error.message, true));
-  }
-});
-
-window.addEventListener("hashchange", () => {
-  const name = location.hash.replace(/^#/, "") || "expenses";
-  if (["expenses", "royalties", "inventory", "orders", "refunds"].includes(name)) {
-    setActiveView(name, { updateHash: false });
-  }
-});
-
-$("newOrderBtn").addEventListener("click", () => {
+if ($("newOrderBtn")) $("newOrderBtn").addEventListener("click", () => {
   if (!state.orderData || !state.orderData.titles.length) {
     setMessage("Add a title on Inventory first.", true);
     return;
@@ -431,7 +415,7 @@ $("newOrderBtn").addEventListener("click", () => {
   openOrder(null);
 });
 
-$("saveOrderBtn").addEventListener("click", async () => {
+if ($("saveOrderBtn")) $("saveOrderBtn").addEventListener("click", async () => {
   try {
     await saveOrder();
   } catch (error) {
@@ -439,7 +423,7 @@ $("saveOrderBtn").addEventListener("click", async () => {
   }
 });
 
-$("deleteOrderBtn").addEventListener("click", async () => {
+if ($("deleteOrderBtn")) $("deleteOrderBtn").addEventListener("click", async () => {
   const id = $("orderEditId").value;
   if (!id || !confirm("Delete this order? A shipped order puts the copies back on the shelf.")) return;
   try {
@@ -452,33 +436,32 @@ $("deleteOrderBtn").addEventListener("click", async () => {
   }
 });
 
-$("orderRefundBtn").addEventListener("click", () => {
+if ($("orderRefundBtn")) $("orderRefundBtn").addEventListener("click", () => {
   const id = $("orderEditId").value;
   if (!id) return;
-  state.pendingRefundOrderId = id;
   $("orderDialog").close();
-  setActiveView("refunds");
+  location.assign(`/refunds?order=${encodeURIComponent(id)}`);
 });
 
 ["orderAmount", "orderFee", "orderCurrency"].forEach((id) => {
-  $(id).addEventListener("input", updateOrderFeeHint);
+  $(id)?.addEventListener("input", updateOrderFeeHint);
 });
 ["orderTitle", "orderFrom", "orderQty"].forEach((id) => {
-  $(id).addEventListener("change", updateOrderStockHint);
+  $(id)?.addEventListener("change", updateOrderStockHint);
 });
-$("orderShipFilter").addEventListener("change", renderOrders);
-$("orderSearch").addEventListener("input", renderOrders);
-$("refundStatusFilter").addEventListener("change", renderRefunds);
+$("orderShipFilter")?.addEventListener("change", renderOrders);
+$("orderSearch")?.addEventListener("input", renderOrders);
+$("refundStatusFilter")?.addEventListener("change", renderRefunds);
 
-$("refundOrder").addEventListener("change", () => {
+$("refundOrder")?.addEventListener("change", () => {
   delete $("refundAmount").dataset.touched;
   updateRefundRoom();
 });
-$("refundAmount").addEventListener("input", () => {
+$("refundAmount")?.addEventListener("input", () => {
   $("refundAmount").dataset.touched = "1";
 });
 
-$("refundForm").addEventListener("submit", async (event) => {
+$("refundForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const amount = dollarsToCents($("refundAmount").value);
@@ -502,9 +485,9 @@ $("refundForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("refundDate").value = today();
-const opening = location.hash.replace(/^#/, "");
-if (["orders", "refunds", "royalties", "inventory"].includes(opening)) {
-  setActiveView(opening, { silent: true, updateHash: false });
+if ($("refundDate")) $("refundDate").value = today();
+const requestedOrder = new URLSearchParams(location.search).get("order");
+if (requestedOrder) state.pendingRefundOrderId = requestedOrder;
+if ($("orderRows") || $("refundRows")) {
+  loadOrders().catch((error) => setMessage(error.message, true));
 }
-loadOrders().catch((error) => setMessage(error.message, true));

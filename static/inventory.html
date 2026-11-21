@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory · Wizard Hat Books Finances</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Wizard Hat Books</strong>
+      <span class="muted">Finances — expenses, royalties, copies on hand, and orders</span>
+    </div>
+    <p class="muted local-note">Saved on this computer. No store login.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a class="tab" href="/expenses">Expenses</a>
+    <a class="tab" href="/royalties">Royalties</a>
+    <a class="tab active" aria-current="page" href="/inventory">Inventory</a>
+    <a class="tab" href="/orders">Orders</a>
+    <a class="tab" href="/refunds">Refunds</a>
+  </nav>
+
+  <p id="message" class="message" role="status"></p>
+
+  <main>
+    <section id="view-inventory" class="view">
+      <p class="muted section-hint">Copies are counted by title at Home, InkFish Books, Barrington Books, and TikTok Shop. A sale removes copies from the place they leave and records where they sold. Not shipped counts orders whose copies are still on the shelf. A paid website checkout has already left Home. Sale amounts here are before the Stripe fee.</p>
+      <form id="titleForm" class="toolbar">
+        <input id="titleName" type="text" placeholder="New title, such as Silas and the Wizard" required>
+        <button type="submit" class="btn primary">Add title</button>
+      </form>
+
+      <h2>On hand</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="stockHead"></tr>
+          </thead>
+          <tbody id="stockRows"></tbody>
+        </table>
+      </div>
+      <p id="stockEmpty" class="muted empty hidden">Add a title, then receive the copies you have at home.</p>
+
+      <div class="split three">
+        <form id="receiveForm" class="card form-grid">
+          <h2>Receive</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="receiveTitle" required></select>
+          </label>
+          <label class="field">
+            <span>Where they arrived</span>
+            <select id="receiveLocation" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="receiveQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="receiveDate" type="date" required>
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="receiveNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Receive</button></div>
+        </form>
+
+        <form id="moveForm" class="card form-grid">
+          <h2>Move</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="moveTitle" required></select>
+          </label>
+          <label class="field">
+            <span>From</span>
+            <select id="moveFrom" required></select>
+          </label>
+          <label class="field">
+            <span>To</span>
+            <select id="moveTo" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="moveQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="moveDate" type="date" required>
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="moveNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Move</button></div>
+        </form>
+
+        <form id="saleForm" class="card form-grid">
+          <h2>Sale</h2>
+          <label class="field">
+            <span>Title</span>
+            <select id="saleTitle" required></select>
+          </label>
+          <label class="field">
+            <span>Copies leave</span>
+            <select id="saleFrom" required></select>
+          </label>
+          <label class="field">
+            <span>Sold through</span>
+            <select id="saleChannel" required></select>
+          </label>
+          <label class="field">
+            <span>Copies</span>
+            <input id="saleQty" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="saleDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>Unit price</span>
+            <input id="salePrice" type="text" inputmode="decimal" placeholder="Optional">
+          </label>
+          <label class="field wide">
+            <span>Notes</span>
+            <input id="saleNotes" type="text">
+          </label>
+          <div class="wide"><button type="submit" class="btn primary">Record sale</button></div>
+        </form>
+      </div>
+
+      <h2>Sales</h2>
+      <p class="muted">These amounts are the sale price. Sales minus the Stripe fee for website orders are on Orders.</p>
+      <div id="salesTotals"></div>
+
+      <h2>Activity</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Title</th>
+              <th>What happened</th>
+              <th class="num">Copies</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="eventRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -90,20 +90,13 @@ function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
-function setActiveView(name, options = {}) {
-  const known = ["expenses", "royalties", "inventory", "orders", "refunds"];
-  if (!known.includes(name)) name = "expenses";
-  document.querySelectorAll(".tabs .tab").forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.view === name);
-  });
-  document.querySelectorAll(".view").forEach((view) => {
-    view.classList.toggle("active", view.id === `view-${name}`);
-  });
-  if (options.updateHash !== false) {
-    const next = `#${name}`;
-    if (location.hash !== next) history.pushState(null, "", next);
-  }
-  if (!options.silent) document.dispatchEvent(new CustomEvent("finances-view", { detail: name }));
+function redirectLegacyHash() {
+  const name = location.hash.replace(/^#/, "");
+  const pages = ["expenses", "royalties", "inventory", "orders", "refunds"];
+  if (!pages.includes(name)) return;
+  const path = location.pathname.replace(/\/+$/, "") || "/";
+  if (path === `/${name}`) return;
+  location.replace(`/${name}${location.search}`);
 }
 
 function sourceLabel(source) {
@@ -372,13 +365,6 @@ function requireTitleId(select) {
   return Number(select.value);
 }
 
-document.querySelectorAll(".tabs .tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    setActiveView(tab.dataset.view);
-    setMessage("");
-  });
-});
-
 document.querySelectorAll(".source-switch .tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     state.royaltySource = tab.dataset.source;
@@ -386,7 +372,7 @@ document.querySelectorAll(".source-switch .tab").forEach((tab) => {
   });
 });
 
-$("royaltyForm").addEventListener("submit", async (event) => {
+$("royaltyForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const net = optionalInt($("royaltyNet").value);
@@ -424,7 +410,7 @@ $("royaltyForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("importForm").addEventListener("submit", async (event) => {
+$("importForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const file = $("importFile").files[0];
   if (!file) {
@@ -447,7 +433,7 @@ $("importForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("titleForm").addEventListener("submit", async (event) => {
+$("titleForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     await api("/api/titles", { method: "POST", body: { name: $("titleName").value } });
@@ -459,7 +445,7 @@ $("titleForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("receiveForm").addEventListener("submit", async (event) => {
+$("receiveForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     await api("/api/inventory/receive", {
@@ -480,7 +466,7 @@ $("receiveForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("moveForm").addEventListener("submit", async (event) => {
+$("moveForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     await api("/api/inventory/move", {
@@ -502,7 +488,7 @@ $("moveForm").addEventListener("submit", async (event) => {
   }
 });
 
-$("saleForm").addEventListener("submit", async (event) => {
+$("saleForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const price = dollarsToCents($("salePrice").value);
@@ -528,15 +514,19 @@ $("saleForm").addEventListener("submit", async (event) => {
 });
 
 function boot() {
-  $("royaltyPeriod").value = thisMonth();
-  $("importPeriod").value = thisMonth();
-  ["receiveDate", "moveDate", "saleDate"].forEach((id) => {
-    $(id).value = today();
-  });
-  applyRoyaltySource();
-  Promise.all([loadRoyalties(), loadInventory()]).catch((error) => {
-    setMessage(error.message, true);
-  });
+  redirectLegacyHash();
+  if ($("royaltyPeriod")) {
+    $("royaltyPeriod").value = thisMonth();
+    $("importPeriod").value = thisMonth();
+    applyRoyaltySource();
+    loadRoyalties().catch((error) => setMessage(error.message, true));
+  }
+  if ($("receiveDate")) {
+    ["receiveDate", "moveDate", "saleDate"].forEach((id) => {
+      $(id).value = today();
+    });
+    loadInventory().catch((error) => setMessage(error.message, true));
+  }
 }
 
 boot();

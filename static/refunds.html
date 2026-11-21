@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refunds · Wizard Hat Books Finances</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Wizard Hat Books</strong>
+      <span class="muted">Finances — expenses, royalties, copies on hand, and orders</span>
+    </div>
+    <p class="muted local-note">Saved on this computer. No store login.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a class="tab" href="/expenses">Expenses</a>
+    <a class="tab" href="/royalties">Royalties</a>
+    <a class="tab" href="/inventory">Inventory</a>
+    <a class="tab" href="/orders">Orders</a>
+    <a class="tab active" aria-current="page" href="/refunds">Refunds</a>
+  </nav>
+
+  <p id="message" class="message" role="status"></p>
+
+  <main>
+    <section id="view-refunds" class="view">
+      <p class="muted section-hint">A refund request stays open until you mark it refunded or declined. Open requests are not taken out of sales. Refunded amounts come out after the Stripe fee. Declined requests stay on the list and do not change the total.</p>
+      <div id="refundStats" class="summary"></div>
+      <form id="refundForm" class="card form-grid">
+        <h2>Add refund request</h2>
+        <label class="field">
+          <span>Order</span>
+          <select id="refundOrder" required></select>
+        </label>
+        <label class="field">
+          <span>Date</span>
+          <input id="refundDate" type="date" required>
+        </label>
+        <label class="field">
+          <span>Amount</span>
+          <input id="refundAmount" type="text" inputmode="decimal" placeholder="Full amount still left" required>
+        </label>
+        <label class="field">
+          <span>Reason</span>
+          <input id="refundReason" type="text" placeholder="Damaged, wrong address, changed mind">
+        </label>
+        <label class="field wide">
+          <span>Notes</span>
+          <input id="refundNotes" type="text">
+        </label>
+        <p class="muted wide" id="refundRoomHint"></p>
+        <div class="wide"><button type="submit" class="btn primary">Save request</button></div>
+      </form>
+      <div class="toolbar">
+        <select id="refundStatusFilter" aria-label="Refund status">
+          <option value="">All requests</option>
+          <option value="open">Open</option>
+          <option value="refunded">Refunded</option>
+          <option value="declined">Declined</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Order</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th class="num">Amount</th>
+              <th>Reason</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="refundRows"></tbody>
+        </table>
+      </div>
+      <p id="refundEmpty" class="muted empty hidden">No refund requests yet.</p>
+    </section>
+  </main>
+
+
+  <script src="/app.js"></script>
+  <script src="/orders.js"></script>
+</body>
+</html>

@@ -131,6 +131,30 @@ class AppTests(unittest.TestCase):
         names = [row["name"] for row in self.client.get("/api/locations").json()]
         self.assertEqual(names, ["Home", "InkFish Books", "Barrington Books", "TikTok Shop", "Website"])
 
+    def test_each_section_is_its_own_page(self):
+        home = self.client.get("/", follow_redirects=False)
+        self.assertEqual(home.status_code, 307)
+        self.assertEqual(home.headers["location"], "/expenses")
+        pages = {
+            "/expenses": "expenseDialog",
+            "/royalties": "royaltyForm",
+            "/inventory": "titleForm",
+            "/orders": "orderDialog",
+            "/refunds": "refundForm",
+        }
+        for path, marker in pages.items():
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertIn(f'id="{marker}"', response.text)
+            self.assertIn('href="/orders"', response.text)
+            self.assertIn('href="/refunds"', response.text)
+            self.assertEqual(response.text.count('aria-current="page"'), 1)
+        self.assertNotIn('id="orderDialog"', self.client.get("/refunds").text)
+        self.assertNotIn('id="refundForm"', self.client.get("/orders").text)
+        slash = self.client.get("/orders/", follow_redirects=False)
+        self.assertEqual(slash.status_code, 307)
+        self.assertEqual(slash.headers["location"], "/orders")
+
     def test_expense_round_trip(self):
         created = self.client.post(
             "/api/expenses",
@@ -193,7 +217,7 @@ class AppTests(unittest.TestCase):
         downloaded = self.client.get(f"/api/expense-receipts/{attachment['id']}")
         self.assertEqual(downloaded.status_code, 200)
         self.assertEqual(downloaded.content, b"receipt-bytes")
-        page = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        page = (ROOT / "static" / "expenses.html").read_text(encoding="utf-8")
         css = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
         self.assertIn('id="expenseDialog"', page)
         self.assertIn('id="deleteExpenseBtn"', page)
@@ -346,12 +370,16 @@ class AppTests(unittest.TestCase):
         self.assertIn("Home", oversell.json()["detail"])
 
     def test_orders_track_shipping_refunds_and_the_stripe_fee(self):
-        page = self.client.get("/")
-        self.assertEqual(page.status_code, 200)
-        self.assertIn('data-view="orders"', page.text)
-        self.assertIn('id="view-refunds"', page.text)
-        self.assertNotIn("sk_live_", page.text)
-        self.assertNotIn("sk_test_", page.text)
+        orders_page = self.client.get("/orders")
+        refunds_page = self.client.get("/refunds")
+        self.assertEqual(orders_page.status_code, 200)
+        self.assertEqual(refunds_page.status_code, 200)
+        self.assertIn('id="view-orders"', orders_page.text)
+        self.assertIn('id="view-refunds"', refunds_page.text)
+        self.assertNotIn("sk_live_", orders_page.text)
+        self.assertNotIn("sk_test_", orders_page.text)
+        self.assertNotIn("sk_live_", refunds_page.text)
+        self.assertNotIn("sk_test_", refunds_page.text)
 
         title = self.client.post("/api/titles", json={"name": "Silas and the Wizard"}).json()
         locations = {row["name"]: row["id"] for row in self.client.get("/api/locations").json()}

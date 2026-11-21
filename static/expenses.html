@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses · Wizard Hat Books Finances</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Wizard Hat Books</strong>
+      <span class="muted">Finances — expenses, royalties, copies on hand, and orders</span>
+    </div>
+    <p class="muted local-note">Saved on this computer. No store login.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a class="tab active" aria-current="page" href="/expenses">Expenses</a>
+    <a class="tab" href="/royalties">Royalties</a>
+    <a class="tab" href="/inventory">Inventory</a>
+    <a class="tab" href="/orders">Orders</a>
+    <a class="tab" href="/refunds">Refunds</a>
+  </nav>
+
+  <p id="message" class="message" role="status"></p>
+
+  <main>
+    <section id="view-expenses" class="view active">
+      <div class="toolbar no-print" id="expenseFilters">
+        <select id="expenseYearFilter" aria-label="Year"></select>
+        <select id="expenseBookFilter" aria-label="Book">
+          <option value="">All books</option>
+        </select>
+        <select id="expenseVendorFilter" aria-label="Vendor">
+          <option value="">All vendors</option>
+        </select>
+        <select id="expenseCategoryFilter" aria-label="Category">
+          <option value="">All categories</option>
+        </select>
+        <select id="expenseWriteOffFilter" aria-label="Write-off">
+          <option value="">All expenses</option>
+          <option value="yes">Write-offs</option>
+          <option value="no">Not write-offs</option>
+        </select>
+        <input id="expenseSearch" type="search" placeholder="Search vendor, notes…">
+        <p class="muted" id="expenseCount"></p>
+        <button type="button" class="btn" id="printExpenseReportBtn">Print report</button>
+        <button type="button" class="btn primary" id="newExpenseBtn">Add expense</button>
+      </div>
+      <p class="muted section-hint no-print">Choose a year, book, and vendor. General is an expense that is not tied to a book. All years shows that selection overall.</p>
+      <article id="expenseReport" class="expense-report"></article>
+    </section>
+  </main>
+
+  <dialog id="expenseDialog">
+    <form method="dialog" class="dialog-body" id="expenseForm">
+      <header class="dialog-header">
+        <h2 id="expenseDialogTitle">Expense</h2>
+        <button type="submit" class="btn" value="cancel">Close</button>
+      </header>
+      <div class="expense-body">
+        <input type="hidden" id="expenseEditId">
+        <div class="expense-form-grid">
+          <label class="field expense-span-2">
+            <span>Book</span>
+            <div class="choice-row">
+              <select id="expenseBook" aria-label="Book"></select>
+              <button type="button" class="btn" id="addBookBtn">Add</button>
+            </div>
+          </label>
+          <label class="field">
+            <span>Date</span>
+            <input id="expenseDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>Amount</span>
+            <input id="expenseAmount" type="text" inputmode="decimal" placeholder="0.00" required>
+          </label>
+          <label class="field">
+            <span>Currency</span>
+            <input id="expenseCurrency" type="text" value="USD" maxlength="3" required>
+          </label>
+          <label class="field">
+            <span>Vendor</span>
+            <div class="choice-row">
+              <select id="expenseVendor" aria-label="Vendor" required></select>
+              <button type="button" class="btn" id="addVendorBtn">Add</button>
+              <button type="button" class="btn" id="removeVendorBtn">Remove</button>
+            </div>
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <div class="choice-row">
+              <select id="expenseCategory" aria-label="Category" required></select>
+              <button type="button" class="btn" id="addCategoryBtn">Add</button>
+              <button type="button" class="btn" id="removeCategoryBtn">Remove</button>
+            </div>
+          </label>
+          <label class="field expense-span-2">
+            <span>Description</span>
+            <input id="expenseDescription" type="text" placeholder="Photoshop, Facebook ads, proof copies…">
+          </label>
+          <label class="field">
+            <span>Payment</span>
+            <input id="expensePayment" type="text" placeholder="Card, PayPal, Amazon…">
+          </label>
+          <label class="field">
+            <span>Tax write-off %</span>
+            <input id="expenseWriteOffPercent" type="number" min="0" max="100" step="1" value="100" inputmode="numeric">
+            <p class="muted" id="expenseWriteOffHint">Deductible $0.00 of $0.00</p>
+          </label>
+          <label class="field expense-span-2">
+            <span>Notes</span>
+            <textarea id="expenseNotes" rows="2"></textarea>
+          </label>
+        </div>
+        <label class="field">
+          <span>Receipts / invoices</span>
+          <div class="receipt-drop" id="expenseDrop">
+            <input id="expenseFiles" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.heic,application/pdf,image/*">
+            <p>Drop, paste, or click to attach PDF, JPG, or PNG receipts.</p>
+          </div>
+          <div id="expenseReceipts" class="receipt-list"></div>
+        </label>
+        <p class="muted hidden" id="expenseSavedHint"></p>
+        <div class="button-row">
+          <button type="button" class="btn primary" id="saveExpenseBtn">Save</button>
+          <button type="button" class="btn" id="saveAndAddExpenseBtn">Save and add another</button>
+          <button type="button" class="btn danger hidden" id="deleteExpenseBtn">Delete</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+  <script src="/app.js"></script>
+  <script src="/expenses.js"></script>
+</body>
+</html>

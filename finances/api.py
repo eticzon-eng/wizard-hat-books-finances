@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -592,4 +592,30 @@ def remove_event(event_id: int) -> dict[str, bool]:
 
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+PAGES = ("expenses", "royalties", "inventory", "orders", "refunds")
+
+
+def _html_page(name: str) -> FileResponse:
+    return FileResponse(STATIC_DIR / f"{name}.html")
+
+
+@app.get("/", include_in_schema=False)
+def root_page() -> RedirectResponse:
+    return RedirectResponse(url="/expenses", status_code=307)
+
+
+def _register_page(name: str) -> None:
+    @app.get(f"/{name}", include_in_schema=False, name=f"page_{name}")
+    def page() -> FileResponse:
+        return _html_page(name)
+
+    @app.get(f"/{name}/", include_in_schema=False, name=f"page_{name}_slash")
+    def page_slash() -> RedirectResponse:
+        return RedirectResponse(url=f"/{name}", status_code=307)
+
+
+for _page_name in PAGES:
+    _register_page(_page_name)
+
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
