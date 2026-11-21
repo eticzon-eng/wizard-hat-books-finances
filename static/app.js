@@ -5,6 +5,7 @@ const state = {
   royaltySource: "kdp",
   royalties: null,
   inventory: null,
+  orderData: null,
 };
 
 function $(id) {
@@ -89,13 +90,20 @@ function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
-function setActiveView(name) {
+function setActiveView(name, options = {}) {
+  const known = ["expenses", "royalties", "inventory", "orders", "refunds"];
+  if (!known.includes(name)) name = "expenses";
   document.querySelectorAll(".tabs .tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === name);
   });
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === `view-${name}`);
   });
+  if (options.updateHash !== false) {
+    const next = `#${name}`;
+    if (location.hash !== next) history.pushState(null, "", next);
+  }
+  if (!options.silent) document.dispatchEvent(new CustomEvent("finances-view", { detail: name }));
 }
 
 function sourceLabel(source) {
@@ -287,6 +295,8 @@ function renderInventory() {
   clear(head);
   head.appendChild(el("th", "Title"));
   locations.forEach((location) => head.appendChild(el("th", location.name, "num")));
+  head.appendChild(el("th", "Not shipped", "num"));
+  const waiting = new Map((state.inventory.awaiting_shipment || []).map((row) => [row.title_id, row.quantity]));
   const body = $("stockRows");
   clear(body);
   $("stockEmpty").classList.toggle("hidden", titles.length > 0);
@@ -297,6 +307,7 @@ function renderInventory() {
       const cell = onHand.find((row) => row.title_id === title.id && row.location_id === location.id);
       tr.appendChild(el("td", cell ? cell.quantity : 0, "num"));
     });
+    tr.appendChild(el("td", waiting.get(title.id) || 0, "num"));
     body.appendChild(tr);
   });
 
@@ -343,11 +354,17 @@ function renderInventory() {
 }
 
 function describeEvent(event) {
-  if (event.kind === "receive") return `Received at ${event.to_location}`;
-  if (event.kind === "move") return `Moved from ${event.from_location} to ${event.to_location}`;
-  const price = event.unit_price_cents == null ? "" : ` at ${money(event.unit_price_cents, event.currency)} each`;
-  if (event.from_location === event.channel) return `Sold from ${event.channel}${price}`;
-  return `Sold through ${event.channel}; copies left ${event.from_location}${price}`;
+  let text;
+  if (event.kind === "receive") text = `Received at ${event.to_location}`;
+  else if (event.kind === "move") text = `Moved from ${event.from_location} to ${event.to_location}`;
+  else {
+    const price = event.unit_price_cents == null ? "" : ` at ${money(event.unit_price_cents, event.currency)} each`;
+    text = event.from_location === event.channel
+      ? `Sold from ${event.channel}${price}`
+      : `Sold through ${event.channel}; copies left ${event.from_location}${price}`;
+  }
+  if (event.notes) text += ` (${event.notes})`;
+  return text;
 }
 
 function requireTitleId(select) {

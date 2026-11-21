@@ -91,6 +91,43 @@ CREATE INDEX IF NOT EXISTS idx_royalties_source ON royalty_entries(source, perio
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(spent_on);
 CREATE INDEX IF NOT EXISTS idx_events_title ON inventory_events(title_id, happened_on);
 
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ordered_on TEXT NOT NULL,
+    buyer_name TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    ship_to TEXT NOT NULL DEFAULT '',
+    title_id INTEGER NOT NULL REFERENCES titles(id),
+    quantity INTEGER NOT NULL CHECK(quantity > 0),
+    from_location_id INTEGER REFERENCES locations(id),
+    amount_cents INTEGER NOT NULL CHECK(amount_cents >= 0),
+    stripe_fee_cents INTEGER NOT NULL CHECK(stripe_fee_cents >= 0),
+    currency TEXT NOT NULL DEFAULT 'USD',
+    ship_status TEXT NOT NULL DEFAULT 'not_shipped' CHECK(ship_status IN ('not_shipped', 'shipped')),
+    shipped_on TEXT,
+    tracking_number TEXT NOT NULL DEFAULT '',
+    carrier TEXT NOT NULL DEFAULT '',
+    inventory_event_id INTEGER REFERENCES inventory_events(id),
+    checkout_session_id TEXT,
+    stock_taken_at TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refund_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    requested_on TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'refunded', 'declined')),
+    amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(ship_status, ordered_on);
+CREATE INDEX IF NOT EXISTS idx_refunds_order ON refund_requests(order_id);
+
 CREATE TABLE IF NOT EXISTS expense_attachments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
@@ -128,7 +165,11 @@ SEEDED_LOCATIONS = (
     ("InkFish Books", "store", 1),
     ("Barrington Books", "store", 2),
     ("TikTok Shop", "shop", 3),
+    ("Website", "shop", 4),
 )
+
+WEBSITE_LOCATION = "Website"
+REFUND_STATUSES = ("open", "refunded", "declined")
 
 DEFAULT_EXPENSE_CATEGORIES = (
     ("software", "Software"),
@@ -178,6 +219,7 @@ def init_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
         _migrate_expense_columns(conn)
+        _migrate_order_links(conn)
         for name, kind, sort_order in SEEDED_LOCATIONS:
             conn.execute(
                 """
@@ -247,6 +289,21 @@ def _migrate_expense_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE expenses ADD COLUMN payment_method TEXT NOT NULL DEFAULT ''")
     if "write_off_percent" not in columns:
         conn.execute("ALTER TABLE expenses ADD COLUMN write_off_percent INTEGER NOT NULL DEFAULT 100")
+
+
+def _migrate_order_links(conn: sqlite3.Connection) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(inventory_events)")}
+    if "order_id" not in columns:
+        conn.execute("ALTER TABLE inventory_events ADD COLUMN order_id INTEGER")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_events_order ON inventory_events(order_id)")
+    order_columns = {row[1] for row in conn.execute("PRAGMA table_info(orders)")}
+    if "checkout_session_id" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN checkout_session_id TEXT")
+    if "stock_taken_at" not in order_columns:
+        conn.execute("ALTER TABLE orders ADD COLUMN stock_taken_at TEXT NOT NULL DEFAULT ''")
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_checkout_session ON orders(checkout_session_id)"
+    )
 
 
 def _write_off_percent(value: Any, default: int = 100) -> int:
@@ -1199,6 +1256,60 @@ def move_copies(
         return _event_by_id(conn, int(cur.lastrowid))
 
 
+def _insert_sale(
+    conn: sqlite3.Connection,
+    *,
+    title_id: int,
+    from_location_id: int,
+    channel_location_id: int,
+    quantity: int,
+    happened_on: str,
+    unit_price_cents: Optional[int],
+    currency: str,
+    notes: str,
+    order_id: Optional[int] = None,
+) -> dict[str, Any]:
+    if quantity < 1:
+        raise ValueError("Quantity must be at least 1.")
+    happened_on = _require_date(happened_on, "Date")
+    currency = _require_currency(currency)
+    _title(conn, title_id)
+    _location(conn, from_location_id)
+    _location(conn, channel_location_id)
+    event = {
+        "id": _next_event_id(conn),
+        "title_id": title_id,
+        "kind": "sale",
+        "from_location_id": from_location_id,
+        "to_location_id": None,
+        "channel_location_id": channel_location_id,
+        "quantity": quantity,
+        "happened_on": happened_on,
+    }
+    _project(conn, extra=event)
+    cur = conn.execute(
+        """
+        INSERT INTO inventory_events (
+            title_id, kind, from_location_id, channel_location_id, quantity,
+            happened_on, unit_price_cents, currency, notes, order_id, created_at
+        ) VALUES (?, 'sale', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            title_id,
+            from_location_id,
+            channel_location_id,
+            quantity,
+            happened_on,
+            unit_price_cents,
+            currency,
+            notes.strip(),
+            order_id,
+            utcnow(),
+        ),
+    )
+    return _event_by_id(conn, int(cur.lastrowid))
+
+
 def sell_copies(
     title_id: int,
     from_location_id: int,
@@ -1209,45 +1320,18 @@ def sell_copies(
     currency: str = "USD",
     notes: str = "",
 ) -> dict[str, Any]:
-    if quantity < 1:
-        raise ValueError("Quantity must be at least 1.")
-    happened_on = _require_date(happened_on, "Date")
-    currency = _require_currency(currency)
     with connect() as conn:
-        _title(conn, title_id)
-        _location(conn, from_location_id)
-        _location(conn, channel_location_id)
-        event = {
-            "id": _next_event_id(conn),
-            "title_id": title_id,
-            "kind": "sale",
-            "from_location_id": from_location_id,
-            "to_location_id": None,
-            "channel_location_id": channel_location_id,
-            "quantity": quantity,
-            "happened_on": happened_on,
-        }
-        _project(conn, extra=event)
-        cur = conn.execute(
-            """
-            INSERT INTO inventory_events (
-                title_id, kind, from_location_id, channel_location_id, quantity,
-                happened_on, unit_price_cents, currency, notes, created_at
-            ) VALUES (?, 'sale', ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                title_id,
-                from_location_id,
-                channel_location_id,
-                quantity,
-                happened_on,
-                unit_price_cents,
-                currency,
-                notes.strip(),
-                utcnow(),
-            ),
+        return _insert_sale(
+            conn,
+            title_id=title_id,
+            from_location_id=from_location_id,
+            channel_location_id=channel_location_id,
+            quantity=quantity,
+            happened_on=happened_on,
+            unit_price_cents=unit_price_cents,
+            currency=currency,
+            notes=notes,
         )
-        return _event_by_id(conn, int(cur.lastrowid))
 
 
 def _event_by_id(conn: sqlite3.Connection, event_id: int, received_at: str = "") -> dict[str, Any]:
@@ -1272,10 +1356,724 @@ def _event_by_id(conn: sqlite3.Connection, event_id: int, received_at: str = "")
     return data
 
 
+def _delete_event(conn: sqlite3.Connection, event_id: int) -> None:
+    row = conn.execute("SELECT id, order_id FROM inventory_events WHERE id = ?", (event_id,)).fetchone()
+    if row is None:
+        raise ValueError("Inventory event not found.")
+    if row["order_id"]:
+        raise ValueError(
+            "This sale is the shipment for an order. Mark that order not shipped on Orders, instead of deleting it here."
+        )
+    _project(conn, skip_id=event_id)
+    conn.execute("DELETE FROM inventory_events WHERE id = ?", (event_id,))
+
+
 def delete_event(event_id: int) -> None:
     with connect() as conn:
-        row = conn.execute("SELECT id FROM inventory_events WHERE id = ?", (event_id,)).fetchone()
-        if row is None:
-            raise ValueError("Inventory event not found.")
-        _project(conn, skip_id=event_id)
-        conn.execute("DELETE FROM inventory_events WHERE id = ?", (event_id,))
+        _delete_event(conn, event_id)
+
+
+# --- Orders ---
+# Stripe pays these sales out. This ledger is the order, the shelf, and the fee.
+# Nothing here calls Stripe or stores a Stripe key.
+
+
+def estimate_stripe_fee_cents(amount_cents: int, currency: str) -> int:
+    """Local estimate of what Stripe keeps on a US card payout: 2.9% + $0.30."""
+    amount = int(amount_cents)
+    if amount < 0:
+        raise ValueError("Sale amount cannot be negative.")
+    if amount == 0:
+        return 0
+    if currency != "USD":
+        raise ValueError("Enter the Stripe fee. The 2.9% + $0.30 estimate is only for USD payouts.")
+    return (amount * 290 + 5000) // 10000 + 30
+
+
+def _limited_text(value: Any, label: str, limit: int, *, multiline: bool = False) -> str:
+    raw = str(value or "").strip()
+    text = raw if multiline else " ".join(raw.split())
+    if len(text) > limit:
+        raise ValueError(f"{label} must be {limit} characters or fewer.")
+    return text
+
+
+def _optional_location_id(value: Any) -> Optional[int]:
+    if value is None or value == "":
+        return None
+    return int(value)
+
+
+def _email_text(value: Any) -> str:
+    email = _limited_text(value, "Email", 200)
+    if email and "@" not in email:
+        raise ValueError("Email needs an @.")
+    return email
+
+
+def _order_row(conn: sqlite3.Connection, order_id: int) -> sqlite3.Row:
+    row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    if row is None:
+        raise ValueError("Order not found.")
+    return row
+
+
+def _refund_rows(conn: sqlite3.Connection, order_id: Optional[int] = None) -> list[sqlite3.Row]:
+    if order_id is None:
+        return list(conn.execute("SELECT * FROM refund_requests ORDER BY requested_on, id").fetchall())
+    return list(
+        conn.execute(
+            "SELECT * FROM refund_requests WHERE order_id = ? ORDER BY requested_on, id",
+            (order_id,),
+        ).fetchall()
+    )
+
+
+def _refund_room(conn: sqlite3.Connection, order_id: int, except_id: Optional[int] = None) -> int:
+    order = _order_row(conn, order_id)
+    used = 0
+    for row in _refund_rows(conn, order_id):
+        if except_id is not None and int(row["id"]) == except_id:
+            continue
+        if row["status"] == "declined":
+            continue
+        used += int(row["amount_cents"])
+    return int(order["amount_cents"]) - used
+
+
+def _shape_refund(row: sqlite3.Row, currency: str = "USD") -> dict[str, Any]:
+    data = _row(row)
+    data["amount"] = _dollars(int(data["amount_cents"]))
+    data["currency"] = currency
+    return data
+
+
+def _shape_order(row: sqlite3.Row, refunds: list[sqlite3.Row]) -> dict[str, Any]:
+    data = _row(row)
+    currency = data["currency"]
+    refunded = sum(int(item["amount_cents"]) for item in refunds if item["status"] == "refunded")
+    net = int(data["amount_cents"]) - int(data["stripe_fee_cents"]) - refunded
+    data["title"] = data.get("title") or ""
+    data["from_location"] = data.get("from_location") or ""
+    data["amount"] = _dollars(int(data["amount_cents"]))
+    data["stripe_fee"] = _dollars(int(data["stripe_fee_cents"]))
+    data["refunded_cents"] = refunded
+    data["refunded"] = _dollars(refunded)
+    data["net_cents"] = net
+    data["net"] = _dollars(net)
+    data["refunds"] = [_shape_refund(item, currency) for item in refunds]
+    data["open_refunds"] = sum(1 for item in refunds if item["status"] == "open")
+    return data
+
+
+def _public_order(conn: sqlite3.Connection, order_id: int) -> dict[str, Any]:
+    row = conn.execute(
+        """
+        SELECT o.*, t.name AS title, l.name AS from_location
+        FROM orders o
+        JOIN titles t ON t.id = o.title_id
+        LEFT JOIN locations l ON l.id = o.from_location_id
+        WHERE o.id = ?
+        """,
+        (order_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Order not found.")
+    return _shape_order(row, _refund_rows(conn, order_id))
+
+
+def _order_values(fields: dict[str, Any], *, partial: bool, existing: Optional[sqlite3.Row]) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    if not partial or "ordered_on" in fields:
+        data["ordered_on"] = _require_date(str(fields.get("ordered_on", "")), "Date")
+    if not partial or "buyer_name" in fields:
+        buyer = _limited_text(fields.get("buyer_name"), "Buyer", 120)
+        if not buyer:
+            raise ValueError("Buyer name is required.")
+        data["buyer_name"] = buyer
+    if not partial or "email" in fields:
+        data["email"] = _email_text(fields.get("email"))
+    if not partial or "ship_to" in fields:
+        data["ship_to"] = _limited_text(fields.get("ship_to"), "Ship to", 500, multiline=True)
+    if not partial or "title_id" in fields:
+        if fields.get("title_id") is None:
+            raise ValueError("Title is required.")
+        data["title_id"] = int(fields["title_id"])
+    if not partial or "quantity" in fields:
+        quantity = int(fields.get("quantity") or 0)
+        if quantity < 1:
+            raise ValueError("Quantity must be at least 1.")
+        data["quantity"] = quantity
+    if not partial or "from_location_id" in fields:
+        data["from_location_id"] = _optional_location_id(fields.get("from_location_id"))
+    if not partial or "notes" in fields:
+        data["notes"] = _limited_text(fields.get("notes"), "Notes", 1000, multiline=True)
+    if not partial or "tracking_number" in fields:
+        data["tracking_number"] = _limited_text(fields.get("tracking_number"), "Tracking number", 80)
+    if not partial or "carrier" in fields:
+        data["carrier"] = _limited_text(fields.get("carrier"), "Carrier", 40)
+
+    if existing is None:
+        currency = _require_currency(str(fields.get("currency") or "USD"))
+        amount = int(fields["amount_cents"])
+    else:
+        currency = (
+            _require_currency(str(fields["currency"]))
+            if "currency" in fields and fields.get("currency") is not None
+            else str(existing["currency"])
+        )
+        amount = int(fields["amount_cents"]) if "amount_cents" in fields and fields.get("amount_cents") is not None else int(existing["amount_cents"])
+    if not partial or "currency" in fields:
+        data["currency"] = currency
+    if not partial or "amount_cents" in fields:
+        if amount < 0:
+            raise ValueError("Sale amount cannot be negative.")
+        data["amount_cents"] = amount
+    if not partial or "stripe_fee_cents" in fields:
+        raw_fee = fields.get("stripe_fee_cents")
+        if raw_fee is None or raw_fee == "":
+            data["stripe_fee_cents"] = estimate_stripe_fee_cents(amount, currency)
+        else:
+            fee = int(raw_fee)
+            if fee < 0:
+                raise ValueError("Stripe fee cannot be negative.")
+            data["stripe_fee_cents"] = fee
+    return data
+
+
+_ORDER_INSERT = """
+INSERT INTO orders (
+    ordered_on, buyer_name, email, ship_to, title_id, quantity, from_location_id,
+    amount_cents, stripe_fee_cents, currency, tracking_number, carrier, notes, created_at
+) VALUES (
+    :ordered_on, :buyer_name, :email, :ship_to, :title_id, :quantity, :from_location_id,
+    :amount_cents, :stripe_fee_cents, :currency, :tracking_number, :carrier, :notes, :created_at
+)
+"""
+
+
+def list_orders() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT o.*, t.name AS title, l.name AS from_location
+            FROM orders o
+            JOIN titles t ON t.id = o.title_id
+            LEFT JOIN locations l ON l.id = o.from_location_id
+            ORDER BY o.ordered_on DESC, o.id DESC
+            """
+        ).fetchall()
+        grouped: dict[int, list[sqlite3.Row]] = {}
+        for refund in _refund_rows(conn):
+            grouped.setdefault(int(refund["order_id"]), []).append(refund)
+        return [_shape_order(row, grouped.get(int(row["id"]), [])) for row in rows]
+
+
+def list_refunds() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT r.*, o.buyer_name, o.ordered_on, o.currency, o.amount_cents AS order_amount_cents,
+                   o.ship_status, t.name AS title
+            FROM refund_requests r
+            JOIN orders o ON o.id = r.order_id
+            JOIN titles t ON t.id = o.title_id
+            ORDER BY r.requested_on DESC, r.id DESC
+            """
+        ).fetchall()
+        shaped = []
+        for row in rows:
+            data = _shape_refund(row, row["currency"])
+            data["buyer_name"] = row["buyer_name"]
+            data["ordered_on"] = row["ordered_on"]
+            data["order_amount_cents"] = int(row["order_amount_cents"])
+            data["ship_status"] = row["ship_status"]
+            data["title"] = row["title"]
+            shaped.append(data)
+        return shaped
+
+
+def order_totals() -> dict[str, Any]:
+    with connect() as conn:
+        orders = conn.execute(
+            "SELECT id, amount_cents, stripe_fee_cents, currency, ship_status, quantity FROM orders"
+        ).fetchall()
+        refunds = conn.execute("SELECT order_id, amount_cents, status FROM refund_requests").fetchall()
+    buckets: dict[str, dict[str, int]] = {}
+    currencies: dict[int, str] = {}
+    not_shipped_orders = shipped_orders = not_shipped_copies = shipped_copies = 0
+    for order in orders:
+        currency = str(order["currency"])
+        currencies[int(order["id"])] = currency
+        bucket = buckets.setdefault(
+            currency,
+            {"gross_cents": 0, "stripe_fee_cents": 0, "refunded_cents": 0, "order_count": 0},
+        )
+        bucket["gross_cents"] += int(order["amount_cents"])
+        bucket["stripe_fee_cents"] += int(order["stripe_fee_cents"])
+        bucket["order_count"] += 1
+        if order["ship_status"] == "shipped":
+            shipped_orders += 1
+            shipped_copies += int(order["quantity"])
+        else:
+            not_shipped_orders += 1
+            not_shipped_copies += int(order["quantity"])
+    open_refunds = 0
+    for refund in refunds:
+        if refund["status"] == "open":
+            open_refunds += 1
+        elif refund["status"] == "refunded":
+            buckets[currencies[int(refund["order_id"])]]["refunded_cents"] += int(refund["amount_cents"])
+    by_currency = []
+    for currency in sorted(buckets):
+        bucket = buckets[currency]
+        gross = bucket["gross_cents"]
+        fee = bucket["stripe_fee_cents"]
+        by_currency.append(
+            {
+                "currency": currency,
+                "order_count": bucket["order_count"],
+                "gross_cents": gross,
+                "stripe_fee_cents": fee,
+                "sales_after_fee_cents": gross - fee,
+                "refunded_cents": bucket["refunded_cents"],
+                "net_cents": gross - fee - bucket["refunded_cents"],
+            }
+        )
+    return {
+        "by_currency": by_currency,
+        "not_shipped_orders": not_shipped_orders,
+        "not_shipped_copies": not_shipped_copies,
+        "shipped_orders": shipped_orders,
+        "shipped_copies": shipped_copies,
+        "open_refunds": open_refunds,
+    }
+
+
+def awaiting_shipment() -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT o.title_id, t.name AS title, SUM(o.quantity) AS quantity
+            FROM orders o
+            JOIN titles t ON t.id = o.title_id
+            WHERE o.ship_status = 'not_shipped' AND ifnull(o.stock_taken_at, '') = ''
+            GROUP BY o.title_id
+            ORDER BY t.name
+            """
+        ).fetchall()
+        return [_row(row) for row in rows]
+
+
+def _same_number(left: Any, right: Any) -> bool:
+    if left is None or left == "":
+        return right is None
+    if right is None:
+        return False
+    return int(left) == int(right)
+
+
+_CHECKOUT_SESSION_RE = re.compile(r"^cs_[A-Za-z0-9_]{4,200}$")
+_CHECKOUT_NOTE = "Paid in test checkout. Shipping and tracking are still open."
+
+
+def _ensure_title_id(conn: sqlite3.Connection, name: str) -> int:
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError("Title is required.")
+    row = conn.execute("SELECT id FROM titles WHERE name = ? COLLATE NOCASE", (cleaned,)).fetchone()
+    if row:
+        return int(row["id"])
+    try:
+        cur = conn.execute(
+            "INSERT INTO titles (name, notes, created_at) VALUES (?, '', ?)",
+            (cleaned, utcnow()),
+        )
+    except sqlite3.IntegrityError:
+        row = conn.execute("SELECT id FROM titles WHERE name = ? COLLATE NOCASE", (cleaned,)).fetchone()
+        if row:
+            return int(row["id"])
+        raise
+    return int(cur.lastrowid)
+
+
+def _location_id_by_name(conn: sqlite3.Connection, name: str) -> int:
+    row = conn.execute("SELECT id FROM locations WHERE name = ?", (name,)).fetchone()
+    if row is None:
+        raise ValueError(f"{name} is not a location.")
+    return int(row["id"])
+
+
+def _order_id_for_checkout(conn: sqlite3.Connection, session_id: str) -> Optional[int]:
+    row = conn.execute(
+        "SELECT id FROM orders WHERE checkout_session_id = ?",
+        (session_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return int(row["id"])
+
+
+def record_checkout_order(fields: dict[str, Any]) -> dict[str, Any]:
+    """Record one paid test checkout. A repeat of the same session does not take more copies."""
+    session_id = str(fields.get("checkout_session_id") or "").strip()
+    if not _CHECKOUT_SESSION_RE.fullmatch(session_id):
+        raise ValueError("Checkout session id is not valid.")
+    ordered_on = _require_date(str(fields.get("ordered_on") or ""), "Date")
+    buyer = _limited_text(fields.get("buyer_name"), "Buyer", 120) or "Website buyer"
+    email = _email_text(fields.get("email"))
+    ship_to = _limited_text(fields.get("ship_to"), "Ship to", 500, multiline=True)
+    title_name = _limited_text(fields.get("title"), "Title", 200) or "Silas and the Wizard"
+    quantity = int(fields.get("quantity") or 0)
+    if quantity < 1:
+        raise ValueError("Quantity must be at least 1.")
+    if fields.get("amount_cents") is None:
+        raise ValueError("Sale amount is required.")
+    amount = int(fields["amount_cents"])
+    if amount < 0:
+        raise ValueError("Sale amount cannot be negative.")
+    currency = _require_currency(str(fields.get("currency") or "USD"))
+    raw_fee = fields.get("stripe_fee_cents")
+    fee_note = ""
+    if raw_fee is None or raw_fee == "":
+        if currency == "USD":
+            fee = estimate_stripe_fee_cents(amount, currency)
+        else:
+            fee = 0
+            fee_note = " Stripe did not include a fee for this currency."
+    else:
+        fee = int(raw_fee)
+        if fee < 0:
+            raise ValueError("Stripe fee cannot be negative.")
+    notes = _CHECKOUT_NOTE + fee_note
+    with connect() as conn:
+        existing = _order_id_for_checkout(conn, session_id)
+        if existing is not None:
+            return _public_order(conn, existing)
+        title_id = _ensure_title_id(conn, title_name)
+        home_id = _location_id_by_name(conn, "Home")
+        try:
+            cur = conn.execute(
+                """
+                INSERT INTO orders (
+                    ordered_on, buyer_name, email, ship_to, title_id, quantity, from_location_id,
+                    amount_cents, stripe_fee_cents, currency, notes, checkout_session_id,
+                    stock_taken_at, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)
+                """,
+                (
+                    ordered_on,
+                    buyer,
+                    email,
+                    ship_to,
+                    title_id,
+                    quantity,
+                    home_id,
+                    amount,
+                    fee,
+                    currency,
+                    notes,
+                    session_id,
+                    utcnow(),
+                ),
+            )
+        except sqlite3.IntegrityError:
+            existing = _order_id_for_checkout(conn, session_id)
+            if existing is not None:
+                return _public_order(conn, existing)
+            raise
+        order_id = int(cur.lastrowid)
+        unit_price = amount // quantity if amount % quantity == 0 else None
+        try:
+            event = _insert_sale(
+                conn,
+                title_id=title_id,
+                from_location_id=home_id,
+                channel_location_id=_website_location_id(conn),
+                quantity=quantity,
+                happened_on=ordered_on,
+                unit_price_cents=unit_price,
+                currency=currency,
+                notes=f"Order {order_id}",
+                order_id=order_id,
+            )
+        except ValueError as exc:
+            if not str(exc).startswith("Not enough copies"):
+                raise
+            conn.execute(
+                "UPDATE orders SET notes = ? WHERE id = ?",
+                (f"{notes} {exc}", order_id),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE orders
+                SET inventory_event_id = ?, stock_taken_at = 'payment'
+                WHERE id = ?
+                """,
+                (event["id"], order_id),
+            )
+        return _public_order(conn, order_id)
+
+
+def create_order(fields: dict[str, Any]) -> dict[str, Any]:
+    data = _order_values(fields, partial=False, existing=None)
+    data["created_at"] = utcnow()
+    with connect() as conn:
+        _title(conn, int(data["title_id"]))
+        if data["from_location_id"] is not None:
+            _location(conn, int(data["from_location_id"]))
+        cur = conn.execute(_ORDER_INSERT, data)
+        return _public_order(conn, int(cur.lastrowid))
+
+
+def update_order(order_id: int, fields: dict[str, Any]) -> dict[str, Any]:
+    if not fields:
+        raise ValueError("Nothing to update.")
+    with connect() as conn:
+        existing = _order_row(conn, order_id)
+        shipped = existing["ship_status"] == "shipped"
+        stock_locked = shipped or (existing["stock_taken_at"] or "") == "payment"
+        if stock_locked:
+            for key in ("title_id", "quantity", "from_location_id"):
+                if key in fields and not _same_number(fields.get(key), existing[key]):
+                    raise ValueError(
+                        "Copies already left the shelf. Delete the order before you change the title, the copies, or where they leave."
+                        if (existing["stock_taken_at"] or "") == "payment" and not shipped
+                        else "Mark the order not shipped before you change the title, the copies, or where they leave."
+                    )
+        data = _order_values(fields, partial=True, existing=existing)
+        new_amount = int(data.get("amount_cents", existing["amount_cents"]))
+        refunded_or_open = int(existing["amount_cents"]) - _refund_room(conn, order_id)
+        if new_amount < refunded_or_open:
+            raise ValueError("Refund requests are larger than this sale. Lower those first.")
+        if not data:
+            return _public_order(conn, order_id)
+        if "title_id" in data:
+            _title(conn, int(data["title_id"]))
+        if data.get("from_location_id") is not None:
+            _location(conn, int(data["from_location_id"]))
+        assignments = ", ".join(f"{key} = :{key}" for key in data)
+        data["id"] = order_id
+        conn.execute(f"UPDATE orders SET {assignments} WHERE id = :id", data)
+        if shipped and existing["inventory_event_id"] and ("amount_cents" in data or "currency" in data):
+            quantity = int(data.get("quantity", existing["quantity"]))
+            amount = int(data.get("amount_cents", existing["amount_cents"]))
+            unit_price = amount // quantity if quantity and amount % quantity == 0 else None
+            conn.execute(
+                "UPDATE inventory_events SET unit_price_cents = ?, currency = ? WHERE id = ?",
+                (unit_price, data.get("currency", existing["currency"]), existing["inventory_event_id"]),
+            )
+        return _public_order(conn, order_id)
+
+
+def _website_location_id(conn: sqlite3.Connection) -> int:
+    row = conn.execute("SELECT id FROM locations WHERE name = ?", (WEBSITE_LOCATION,)).fetchone()
+    if row is None:
+        raise ValueError("Website location is missing. Restart the site so locations can be filled in.")
+    return int(row["id"])
+
+
+def ship_order(
+    order_id: int,
+    shipped_on: str,
+    from_location_id: int,
+    tracking_number: str = "",
+    carrier: str = "",
+) -> dict[str, Any]:
+    shipped_on = _require_date(shipped_on, "Ship date")
+    tracking = _limited_text(tracking_number, "Tracking number", 80)
+    carrier_name = _limited_text(carrier, "Carrier", 40)
+    with connect() as conn:
+        order = _order_row(conn, order_id)
+        if order["ship_status"] == "shipped" or (order["stock_taken_at"] or "") == "payment":
+            current = order["from_location_id"]
+            if current is not None and int(current) != int(from_location_id):
+                if (order["stock_taken_at"] or "") == "payment":
+                    raise ValueError("Copies already left that shelf when the checkout was paid.")
+                raise ValueError("Mark the order not shipped before you change where the copies leave.")
+            conn.execute(
+                """
+                UPDATE orders
+                SET ship_status = 'shipped', shipped_on = ?, from_location_id = ?,
+                    tracking_number = ?, carrier = ?
+                WHERE id = ?
+                """,
+                (shipped_on, from_location_id, tracking, carrier_name, order_id),
+            )
+            return _public_order(conn, order_id)
+        _location(conn, from_location_id)
+        amount = int(order["amount_cents"])
+        quantity = int(order["quantity"])
+        unit_price = amount // quantity if quantity and amount % quantity == 0 else None
+        event = _insert_sale(
+            conn,
+            title_id=int(order["title_id"]),
+            from_location_id=from_location_id,
+            channel_location_id=_website_location_id(conn),
+            quantity=quantity,
+            happened_on=shipped_on,
+            unit_price_cents=unit_price,
+            currency=str(order["currency"]),
+            notes=f"Order {order_id}",
+            order_id=order_id,
+        )
+        conn.execute(
+            """
+            UPDATE orders
+            SET ship_status = 'shipped', shipped_on = ?, from_location_id = ?,
+                tracking_number = ?, carrier = ?, inventory_event_id = ?, stock_taken_at = 'shipment'
+            WHERE id = ?
+            """,
+            (shipped_on, from_location_id, tracking, carrier_name, event["id"], order_id),
+        )
+        return _public_order(conn, order_id)
+
+
+def unship_order(order_id: int) -> dict[str, Any]:
+    with connect() as conn:
+        order = _order_row(conn, order_id)
+        if order["ship_status"] != "shipped":
+            return _public_order(conn, order_id)
+        if (order["stock_taken_at"] or "") == "payment":
+            conn.execute(
+                "UPDATE orders SET ship_status = 'not_shipped', shipped_on = NULL WHERE id = ?",
+                (order_id,),
+            )
+            return _public_order(conn, order_id)
+        event_id = order["inventory_event_id"]
+        conn.execute(
+            """
+            UPDATE orders
+            SET ship_status = 'not_shipped', shipped_on = NULL, inventory_event_id = NULL, stock_taken_at = ''
+            WHERE id = ?
+            """,
+            (order_id,),
+        )
+        if event_id:
+            conn.execute("UPDATE inventory_events SET order_id = NULL WHERE id = ?", (event_id,))
+            _delete_event(conn, int(event_id))
+        return _public_order(conn, order_id)
+
+
+def delete_order(order_id: int) -> None:
+    with connect() as conn:
+        order = _order_row(conn, order_id)
+        event_id = order["inventory_event_id"]
+        if event_id:
+            conn.execute("UPDATE orders SET inventory_event_id = NULL WHERE id = ?", (order_id,))
+            conn.execute("UPDATE inventory_events SET order_id = NULL WHERE id = ?", (event_id,))
+            _delete_event(conn, int(event_id))
+        conn.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+
+
+def _refund_amount(fields: dict[str, Any], room: int, *, required: bool) -> Optional[int]:
+    if "amount_cents" not in fields or fields.get("amount_cents") is None:
+        if required:
+            if room < 1:
+                raise ValueError("This sale has no amount left to refund.")
+            return room
+        return None
+    amount = int(fields["amount_cents"])
+    if amount < 1:
+        raise ValueError("Refund amount must be at least one cent.")
+    return amount
+
+
+def _refund_status(value: Any, default: str = "open") -> str:
+    status = str(value or default).strip()
+    if status not in REFUND_STATUSES:
+        raise ValueError("Refund status must be open, refunded, or declined.")
+    return status
+
+
+def _public_refund(conn: sqlite3.Connection, refund_id: int) -> dict[str, Any]:
+    row = conn.execute(
+        """
+        SELECT r.*, o.buyer_name, o.ordered_on, o.currency, o.amount_cents AS order_amount_cents,
+               o.ship_status, t.name AS title
+        FROM refund_requests r
+        JOIN orders o ON o.id = r.order_id
+        JOIN titles t ON t.id = o.title_id
+        WHERE r.id = ?
+        """,
+        (refund_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Refund request not found.")
+    data = _shape_refund(row, row["currency"])
+    data["buyer_name"] = row["buyer_name"]
+    data["ordered_on"] = row["ordered_on"]
+    data["order_amount_cents"] = int(row["order_amount_cents"])
+    data["ship_status"] = row["ship_status"]
+    data["title"] = row["title"]
+    return data
+
+
+def create_refund(order_id: int, fields: dict[str, Any]) -> dict[str, Any]:
+    requested_on = _require_date(str(fields.get("requested_on", "")), "Date")
+    reason = _limited_text(fields.get("reason"), "Reason", 300, multiline=True)
+    notes = _limited_text(fields.get("notes"), "Notes", 1000, multiline=True)
+    status = _refund_status(fields.get("status") or "open")
+    with connect() as conn:
+        _order_row(conn, order_id)
+        room = _refund_room(conn, order_id)
+        amount = _refund_amount(fields, room, required=True)
+        assert amount is not None
+        if status != "declined" and amount > room:
+            raise ValueError("That refund is more than the sale still has left.")
+        cur = conn.execute(
+            """
+            INSERT INTO refund_requests (
+                order_id, requested_on, reason, status, amount_cents, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (order_id, requested_on, reason, status, amount, notes, utcnow()),
+        )
+        return _public_refund(conn, int(cur.lastrowid))
+
+
+def update_refund(refund_id: int, fields: dict[str, Any]) -> dict[str, Any]:
+    if not fields:
+        raise ValueError("Nothing to update.")
+    with connect() as conn:
+        current = conn.execute("SELECT * FROM refund_requests WHERE id = ?", (refund_id,)).fetchone()
+        if current is None:
+            raise ValueError("Refund request not found.")
+        order_id = int(current["order_id"])
+        requested_on = (
+            _require_date(str(fields["requested_on"]), "Date")
+            if "requested_on" in fields
+            else current["requested_on"]
+        )
+        reason = (
+            _limited_text(fields["reason"], "Reason", 300, multiline=True) if "reason" in fields else current["reason"]
+        )
+        notes = (
+            _limited_text(fields["notes"], "Notes", 1000, multiline=True) if "notes" in fields else current["notes"]
+        )
+        status = _refund_status(fields["status"]) if "status" in fields else str(current["status"])
+        room = _refund_room(conn, order_id, except_id=refund_id)
+        amount = int(current["amount_cents"])
+        if "amount_cents" in fields:
+            updated = _refund_amount(fields, room, required=True)
+            assert updated is not None
+            amount = updated
+        if status != "declined" and amount > room:
+            raise ValueError("That refund is more than the sale still has left.")
+        conn.execute(
+            """
+            UPDATE refund_requests
+            SET requested_on = ?, reason = ?, status = ?, amount_cents = ?, notes = ?
+            WHERE id = ?
+            """,
+            (requested_on, reason, status, amount, notes, refund_id),
+        )
+        return _public_refund(conn, refund_id)
+
+
+def delete_refund(refund_id: int) -> None:
+    with connect() as conn:
+        cur = conn.execute("DELETE FROM refund_requests WHERE id = ?", (refund_id,))
+        if cur.rowcount == 0:
+            raise ValueError("Refund request not found.")

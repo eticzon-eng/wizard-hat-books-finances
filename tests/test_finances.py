@@ -129,7 +129,7 @@ class AppTests(unittest.TestCase):
 
     def test_locations_are_seeded(self):
         names = [row["name"] for row in self.client.get("/api/locations").json()]
-        self.assertEqual(names, ["Home", "InkFish Books", "Barrington Books", "TikTok Shop"])
+        self.assertEqual(names, ["Home", "InkFish Books", "Barrington Books", "TikTok Shop", "Website"])
 
     def test_expense_round_trip(self):
         created = self.client.post(
@@ -344,6 +344,294 @@ class AppTests(unittest.TestCase):
         )
         self.assertEqual(oversell.status_code, 400)
         self.assertIn("Home", oversell.json()["detail"])
+
+    def test_orders_track_shipping_refunds_and_the_stripe_fee(self):
+        page = self.client.get("/")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('data-view="orders"', page.text)
+        self.assertIn('id="view-refunds"', page.text)
+        self.assertNotIn("sk_live_", page.text)
+        self.assertNotIn("sk_test_", page.text)
+
+        title = self.client.post("/api/titles", json={"name": "Silas and the Wizard"}).json()
+        locations = {row["name"]: row["id"] for row in self.client.get("/api/locations").json()}
+        received = self.client.post(
+            "/api/inventory/receive",
+            json={
+                "title_id": title["id"],
+                "location_id": locations["Home"],
+                "quantity": 2,
+                "happened_on": "2026-11-01",
+            },
+        )
+        self.assertEqual(received.status_code, 200, received.text)
+
+        created = self.client.post(
+            "/api/orders",
+            json={
+                "ordered_on": "2026-11-02",
+                "buyer_name": "Ada Lovelace",
+                "email": "ada@example.com",
+                "ship_to": "1 Analytical Engine\nLondon",
+                "title_id": title["id"],
+                "quantity": 1,
+                "from_location_id": locations["Home"],
+                "amount_cents": 3699,
+                "currency": "USD",
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        order = created.json()
+        self.assertEqual(order["ship_status"], "not_shipped")
+        self.assertEqual(order["stripe_fee_cents"], 137)
+        self.assertEqual(order["net_cents"], 3562)
+        self.assertIn("\n", order["ship_to"])
+
+        on_hand = {
+            (row["location"], row["quantity"])
+            for row in self.client.get("/api/inventory").json()["on_hand"]
+            if row["title_id"] == title["id"]
+        }
+        self.assertIn(("Home", 2), on_hand)
+        waiting = self.client.get("/api/inventory").json()["awaiting_shipment"]
+        self.assertEqual(waiting, [{"title_id": title["id"], "title": "Silas and the Wizard", "quantity": 1}])
+
+        refused = self.client.post(
+            "/api/orders",
+            json={
+                "ordered_on": "2026-11-02",
+                "buyer_name": "Grace Hopper",
+                "title_id": title["id"],
+                "quantity": 1,
+                "amount_cents": 3699,
+                "currency": "CAD",
+            },
+        )
+        self.assertEqual(refused.status_code, 400)
+        self.assertIn("Stripe fee", refused.json()["detail"])
+
+        cad = self.client.post(
+            "/api/orders",
+            json={
+                "ordered_on": "2026-11-03",
+                "buyer_name": "Grace Hopper",
+                "title_id": title["id"],
+                "quantity": 1,
+                "from_location_id": locations["Home"],
+                "amount_cents": 4000,
+                "stripe_fee_cents": 146,
+                "currency": "CAD",
+            },
+        )
+        self.assertEqual(cad.status_code, 200, cad.text)
+
+        shipped = self.client.post(
+            f"/api/orders/{order['id']}/ship",
+            json={
+                "shipped_on": "2026-11-04",
+                "from_location_id": locations["Home"],
+                "tracking_number": "1Z999",
+                "carrier": "UPS",
+            },
+        )
+        self.assertEqual(shipped.status_code, 200, shipped.text)
+        self.assertEqual(shipped.json()["ship_status"], "shipped")
+        self.assertEqual(shipped.json()["tracking_number"], "1Z999")
+        self.assertEqual(shipped.json()["carrier"], "UPS")
+
+        home = next(
+            row["quantity"]
+            for row in self.client.get("/api/inventory").json()["on_hand"]
+            if row["title_id"] == title["id"] and row["location"] == "Home"
+        )
+        self.assertEqual(home, 1)
+        sales = self.client.get("/api/inventory").json()["sales"]
+        self.assertEqual(sales[0]["channel"], "Website")
+        self.assertEqual(sales[0]["quantity"], 1)
+        self.assertEqual(sales[0]["amount_cents"], 3699)
+        event_id = next(row["id"] for row in self.client.get("/api/inventory").json()["events"] if row["kind"] == "sale")
+        blocked = self.client.delete(f"/api/inventory/events/{event_id}")
+        self.assertEqual(blocked.status_code, 400)
+        self.assertIn("Orders", blocked.json()["detail"])
+
+        over = self.client.post(
+            "/api/orders",
+            json={
+                "ordered_on": "2026-11-05",
+                "buyer_name": "Too Many",
+                "title_id": title["id"],
+                "quantity": 5,
+                "from_location_id": locations["Home"],
+                "amount_cents": 1000,
+                "stripe_fee_cents": 0,
+                "currency": "USD",
+            },
+        )
+        self.assertEqual(over.status_code, 200, over.text)
+        cannot_ship = self.client.post(
+            f"/api/orders/{over.json()['id']}/ship",
+            json={"shipped_on": "2026-11-05", "from_location_id": locations["Home"]},
+        )
+        self.assertEqual(cannot_ship.status_code, 400)
+        self.assertEqual(self.client.get(f"/api/orders").json()["orders"][0]["ship_status"], "not_shipped")
+
+        refund = self.client.post(
+            f"/api/orders/{order['id']}/refunds",
+            json={"requested_on": "2026-11-06", "amount_cents": 1000, "reason": "Damaged corner"},
+        )
+        self.assertEqual(refund.status_code, 200, refund.text)
+        self.assertEqual(refund.json()["status"], "open")
+        totals = {row["currency"]: row for row in self.client.get("/api/orders").json()["totals"]["by_currency"]}
+        self.assertEqual(totals["USD"]["gross_cents"], 4699)
+        self.assertEqual(totals["USD"]["stripe_fee_cents"], 137)
+        self.assertEqual(totals["USD"]["sales_after_fee_cents"], 4562)
+        self.assertEqual(totals["USD"]["refunded_cents"], 0)
+        self.assertEqual(totals["CAD"]["sales_after_fee_cents"], 3854)
+        self.assertEqual(self.client.get("/api/orders").json()["totals"]["open_refunds"], 1)
+
+        too_much = self.client.post(
+            f"/api/orders/{order['id']}/refunds",
+            json={"requested_on": "2026-11-06", "amount_cents": 3000, "reason": "Also this"},
+        )
+        self.assertEqual(too_much.status_code, 400)
+
+        marked = self.client.patch(f"/api/refunds/{refund.json()['id']}", json={"status": "refunded"})
+        self.assertEqual(marked.status_code, 200, marked.text)
+        usd = {row["currency"]: row for row in self.client.get("/api/orders").json()["totals"]["by_currency"]}["USD"]
+        self.assertEqual(usd["refunded_cents"], 1000)
+        self.assertEqual(usd["sales_after_fee_cents"], 4562)
+        self.assertEqual(usd["net_cents"], 3562)
+
+        unshipped = self.client.post(f"/api/orders/{order['id']}/unship")
+        self.assertEqual(unshipped.status_code, 200, unshipped.text)
+        self.assertEqual(unshipped.json()["ship_status"], "not_shipped")
+        self.assertEqual(unshipped.json()["tracking_number"], "1Z999")
+        home_again = next(
+            row["quantity"]
+            for row in self.client.get("/api/inventory").json()["on_hand"]
+            if row["title_id"] == title["id"] and row["location"] == "Home"
+        )
+        self.assertEqual(home_again, 2)
+
+        removed = self.client.delete(f"/api/orders/{order['id']}")
+        self.assertEqual(removed.status_code, 200, removed.text)
+        self.assertFalse(any(row["buyer_name"] == "Ada Lovelace" for row in self.client.get("/api/orders").json()["orders"]))
+
+    def test_paid_checkout_takes_stock_and_leaves_shipping_open(self):
+        short = self.client.post(
+            "/api/orders/checkout",
+            json={
+                "checkout_session_id": "cs_test_short_stock",
+                "ordered_on": "2026-11-21",
+                "buyer_name": "Short Stock",
+                "email": "short@example.com",
+                "ship_to": "1 Main St\nProvidence RI 02903\nUnited States",
+                "title": "Silas and the Wizard",
+                "quantity": 1,
+                "amount_cents": 4199,
+                "currency": "USD",
+            },
+        )
+        self.assertEqual(short.status_code, 200, short.text)
+        self.assertEqual(short.json()["ship_status"], "not_shipped")
+        self.assertEqual(short.json()["tracking_number"], "")
+        self.assertEqual(short.json()["stock_taken_at"], "")
+        self.assertIn("Not enough copies", short.json()["notes"])
+        self.assertEqual(short.json()["stripe_fee_cents"], 152)
+        self.assertEqual(short.json()["refunds"], [])
+
+        title_id = short.json()["title_id"]
+        locations = {row["name"]: row["id"] for row in self.client.get("/api/locations").json()}
+        received = self.client.post(
+            "/api/inventory/receive",
+            json={
+                "title_id": title_id,
+                "location_id": locations["Home"],
+                "quantity": 2,
+                "happened_on": "2026-11-20",
+            },
+        )
+        self.assertEqual(received.status_code, 200, received.text)
+
+        paid = self.client.post(
+            "/api/orders/checkout",
+            json={
+                "checkout_session_id": "cs_test_paid_order",
+                "ordered_on": "2026-11-21",
+                "buyer_name": "Ada Lovelace",
+                "email": "ada@example.com",
+                "ship_to": "1 Analytical Engine\nLondon",
+                "title": "Silas and the Wizard",
+                "quantity": 1,
+                "amount_cents": 4199,
+                "stripe_fee_cents": 80,
+                "currency": "USD",
+            },
+        )
+        self.assertEqual(paid.status_code, 200, paid.text)
+        order = paid.json()
+        self.assertEqual(order["buyer_name"], "Ada Lovelace")
+        self.assertEqual(order["ship_to"], "1 Analytical Engine\nLondon")
+        self.assertEqual(order["amount_cents"], 4199)
+        self.assertEqual(order["stripe_fee_cents"], 80)
+        self.assertEqual(order["ship_status"], "not_shipped")
+        self.assertEqual(order["tracking_number"], "")
+        self.assertEqual(order["carrier"], "")
+        self.assertEqual(order["stock_taken_at"], "payment")
+        self.assertEqual(order["refunds"], [])
+
+        def home_quantity():
+            return next(
+                row["quantity"]
+                for row in self.client.get("/api/inventory").json()["on_hand"]
+                if row["title_id"] == title_id and row["location"] == "Home"
+            )
+
+        self.assertEqual(home_quantity(), 1)
+        waiting = self.client.get("/api/inventory").json()["awaiting_shipment"]
+        self.assertTrue(all(row["title_id"] != title_id or row["quantity"] == 1 for row in waiting))
+        sales = self.client.get("/api/inventory").json()["sales"]
+        self.assertEqual(sales[0]["channel"], "Website")
+        self.assertEqual(sales[0]["quantity"], 1)
+
+        again = self.client.post(
+            "/api/orders/checkout",
+            json={
+                "checkout_session_id": "cs_test_paid_order",
+                "ordered_on": "2026-11-21",
+                "buyer_name": "Ada Lovelace",
+                "title": "Silas and the Wizard",
+                "quantity": 1,
+                "amount_cents": 4199,
+                "stripe_fee_cents": 80,
+                "currency": "USD",
+            },
+        )
+        self.assertEqual(again.status_code, 200, again.text)
+        self.assertEqual(again.json()["id"], order["id"])
+        self.assertEqual(home_quantity(), 1)
+
+        shipped = self.client.post(
+            f"/api/orders/{order['id']}/ship",
+            json={
+                "shipped_on": "2026-11-22",
+                "from_location_id": locations["Home"],
+                "tracking_number": "1Z999",
+                "carrier": "UPS",
+            },
+        )
+        self.assertEqual(shipped.status_code, 200, shipped.text)
+        self.assertEqual(shipped.json()["ship_status"], "shipped")
+        self.assertEqual(shipped.json()["tracking_number"], "1Z999")
+        self.assertEqual(shipped.json()["stock_taken_at"], "payment")
+        self.assertEqual(home_quantity(), 1)
+        self.assertEqual(self.client.get("/api/inventory").json()["sales"][0]["quantity"], 1)
+
+        unshipped = self.client.post(f"/api/orders/{order['id']}/unship")
+        self.assertEqual(unshipped.status_code, 200, unshipped.text)
+        self.assertEqual(unshipped.json()["ship_status"], "not_shipped")
+        self.assertEqual(unshipped.json()["stock_taken_at"], "payment")
+        self.assertEqual(home_quantity(), 1)
 
 
 if __name__ == "__main__":

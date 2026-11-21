@@ -1,6 +1,6 @@
 # Wizard Hat Books Finances
 
-Local site for Wizard Hat Books expenses, Amazon KDP royalties, IngramSpark royalties, and copies on hand.
+Local site for Wizard Hat Books expenses, Amazon KDP royalties, IngramSpark royalties, copies on hand, and direct orders.
 
 This repository is separate from the art library and the author site (`eticzon-eng/book-art-library`) and from the tennis league (`eticzon-eng/fantasy_league`). Artwork and the public author site stay in the art library.
 
@@ -18,7 +18,10 @@ python3 -m finances serve
 
 Open http://127.0.0.1:8791
 
-The database is `data/finances.db` on this computer. The server listens on localhost only. It does not call Amazon or IngramSpark.
+The database is `data/finances.db` on this computer. The server listens on localhost only. It does not call Amazon, IngramSpark, or Stripe.
+
+- Orders: http://127.0.0.1:8791/#orders
+- Refunds: http://127.0.0.1:8791/#refunds
 
 `python3 -m finances init` creates the database without starting the site.
 
@@ -41,11 +44,25 @@ UTF-16 exports and ISBNs wrapped as Excel formulas (`="978…"`) are accepted. I
 
 Sample files in `samples/` are fake figures for checking the import. They are not a statement.
 
+## Orders
+
+Direct orders are kept here. Stripe only pays them out. The site does not call Stripe, and it does not store a Stripe key.
+
+An order records the buyer, the title, the copies, where those copies will leave, the sale total, and the Stripe fee. Leave the fee blank on a US dollar sale and the site estimates 2.9% + $0.30, which is the part Stripe keeps from the payout. Enter the fee when you know the payout amount, or when the sale is not in US dollars. Sales minus the Stripe fee is the total on the Orders screen. Currencies stay separate.
+
+The order you add on this screen stays not shipped, and the copies stay on the shelf, until you mark it shipped. Shipping takes the copies from the shelf you chose, stores the carrier and tracking number, and counts the sale under Website. Marking that kind of order not shipped puts the copies back.
+
+A paid test checkout on the local author site is different. The author site tells this site about the paid Checkout Session. The order is saved with the buyer, the address, the amount charged, and the Stripe fee. When the session includes the fee Stripe kept, that fee is stored. Otherwise a US dollar sale uses 2.9% + $0.30. The copies leave Home at that moment and the sale is counted under Website. The order stays not shipped, with no tracking number and no refund, until you enter those here. Marking it shipped or not shipped after that does not move the copies again.
+
+Refund requests are on their own screen. An open or declined request does not change the sales total. Mark it refunded when that amount should come out. The Stripe fee stays in the fee total either way.
+
 ## Inventory
 
 Add a title, receive copies (usually at Home), move them, and record a sale.
 
 A sale says where the copies left and where they sold. A TikTok Shop sale of a copy that was still at home leaves Home and is counted under TikTok Shop. A copy sent to InkFish Books or Barrington Books stays on hand at that shop until you record a sale from there. The site will not move or sell more copies than a location has.
+
+Not shipped, on the inventory table, is the number of copies on orders that have not shipped and have not already left the shelf. Website on the sales list is the sale price before the Stripe fee. A paid test checkout shows up there as soon as it is recorded.
 
 ## Tests
 

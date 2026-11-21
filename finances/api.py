@@ -109,6 +109,74 @@ class SaleBody(BaseModel):
     notes: str = ""
 
 
+class OrderBody(BaseModel):
+    ordered_on: str
+    buyer_name: str
+    email: str = ""
+    ship_to: str = ""
+    title_id: int
+    quantity: int = Field(gt=0)
+    from_location_id: Optional[int] = None
+    amount_cents: int = Field(ge=0)
+    stripe_fee_cents: Optional[int] = None
+    currency: str = "USD"
+    notes: str = ""
+    tracking_number: str = ""
+    carrier: str = ""
+
+
+class OrderPatch(BaseModel):
+    ordered_on: Optional[str] = None
+    buyer_name: Optional[str] = None
+    email: Optional[str] = None
+    ship_to: Optional[str] = None
+    title_id: Optional[int] = None
+    quantity: Optional[int] = None
+    from_location_id: Optional[int] = None
+    amount_cents: Optional[int] = None
+    stripe_fee_cents: Optional[int] = None
+    currency: Optional[str] = None
+    notes: Optional[str] = None
+    tracking_number: Optional[str] = None
+    carrier: Optional[str] = None
+
+
+class ShipBody(BaseModel):
+    shipped_on: str
+    from_location_id: int
+    tracking_number: str = ""
+    carrier: str = ""
+
+
+class RefundBody(BaseModel):
+    requested_on: str
+    amount_cents: Optional[int] = None
+    reason: str = ""
+    notes: str = ""
+    status: str = "open"
+
+
+class RefundPatch(BaseModel):
+    requested_on: Optional[str] = None
+    amount_cents: Optional[int] = None
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+class CheckoutOrderBody(BaseModel):
+    checkout_session_id: str
+    ordered_on: str
+    buyer_name: str = ""
+    email: str = ""
+    ship_to: str = ""
+    title: str = ""
+    quantity: int = Field(gt=0)
+    amount_cents: int = Field(ge=0)
+    stripe_fee_cents: Optional[int] = None
+    currency: str = "USD"
+
+
 def _bad(exc: Exception) -> HTTPException:
     return HTTPException(400, str(exc))
 
@@ -373,7 +441,105 @@ def get_inventory() -> dict[str, Any]:
         "sales": db.sales_totals(),
         "titles": db.list_titles(),
         "locations": db.list_locations(),
+        "awaiting_shipment": db.awaiting_shipment(),
     }
+
+
+def _orders_page() -> dict[str, Any]:
+    return {
+        "orders": db.list_orders(),
+        "refunds": db.list_refunds(),
+        "totals": db.order_totals(),
+        "titles": db.list_titles(),
+        "locations": db.list_locations(),
+        "on_hand": db.inventory_snapshot(),
+        "awaiting_shipment": db.awaiting_shipment(),
+    }
+
+
+@app.get("/api/orders")
+def get_orders() -> dict[str, Any]:
+    return _orders_page()
+
+
+@app.post("/api/orders/checkout")
+def post_checkout_order(body: CheckoutOrderBody) -> dict[str, Any]:
+    try:
+        return db.record_checkout_order(body.model_dump())
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/orders")
+def post_order(body: OrderBody) -> dict[str, Any]:
+    try:
+        return db.create_order(body.model_dump())
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.patch("/api/orders/{order_id}")
+def patch_order(order_id: int, body: OrderPatch) -> dict[str, Any]:
+    try:
+        return db.update_order(order_id, body.model_dump(exclude_unset=True))
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/orders/{order_id}/ship")
+def post_ship(order_id: int, body: ShipBody) -> dict[str, Any]:
+    try:
+        return db.ship_order(
+            order_id,
+            body.shipped_on,
+            body.from_location_id,
+            body.tracking_number,
+            body.carrier,
+        )
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/orders/{order_id}/unship")
+def post_unship(order_id: int) -> dict[str, Any]:
+    try:
+        return db.unship_order(order_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.delete("/api/orders/{order_id}")
+def remove_order(order_id: int) -> dict[str, bool]:
+    try:
+        db.delete_order(order_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {"ok": True}
+
+
+@app.post("/api/orders/{order_id}/refunds")
+def post_refund(order_id: int, body: RefundBody) -> dict[str, Any]:
+    try:
+        return db.create_refund(order_id, body.model_dump())
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.patch("/api/refunds/{refund_id}")
+def patch_refund(refund_id: int, body: RefundPatch) -> dict[str, Any]:
+    try:
+        return db.update_refund(refund_id, body.model_dump(exclude_unset=True))
+    except ValueError as exc:
+        raise _bad(exc) from exc
+
+
+@app.delete("/api/refunds/{refund_id}")
+def remove_refund(refund_id: int) -> dict[str, bool]:
+    try:
+        db.delete_refund(refund_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {"ok": True}
 
 
 @app.post("/api/inventory/receive")

@@ -92,7 +92,7 @@ h2 { font-family: var(--serif); font-size: 1.25rem; margin: 0 0 0.75rem; }
 .form-grid h2, .wide { grid-column: 1 / -1; }
 
 .field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.92rem; }
-.field input, .field select, .toolbar input {
+.field input, .field select, .field textarea, .toolbar input, .toolbar select {
   font: inherit;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--line);
@@ -100,6 +100,7 @@ h2 { font-family: var(--serif); font-size: 1.25rem; margin: 0 0 0.75rem; }
   background: #fff;
   color: var(--ink);
 }
+.field textarea { resize: vertical; min-height: 4.5rem; }
 .hint { font-size: 0.8rem; color: var(--muted); }
 
 .btn {
@@ -354,6 +355,36 @@ dialog::backdrop { background: rgba(26, 26, 26, 0.55); }
   text-transform: none;
 }
 .btn.danger:hover { background: var(--danger); color: white; }
+
+.badge {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.badge.shipped, .badge.refunded { color: var(--accent); border-color: var(--accent); background: rgba(31, 77, 58, 0.08); }
+.badge.waiting, .badge.open { color: var(--danger); border-color: var(--danger); background: rgba(138, 59, 45, 0.08); }
+.badge.declined { color: var(--muted); }
+.badge + .badge { margin-left: 0.35rem; }
+
+.check-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0.2rem 0 0.8rem;
+}
+.check-row span {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+#orderRows tr { cursor: pointer; }
+#orderRows tr:hover { background: rgba(31, 77, 58, 0.05); }
+.cell-stack { display: flex; flex-direction: column; gap: 0.15rem; }
 
 @media print {
   body { background: white; }

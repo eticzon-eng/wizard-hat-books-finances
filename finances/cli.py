@@ -23,7 +23,7 @@ def cmd_serve(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="finances",
-        description="Wizard Hat Books finances: expenses, royalties, and inventory.",
+        description="Wizard Hat Books finances: expenses, royalties, inventory, and orders.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
