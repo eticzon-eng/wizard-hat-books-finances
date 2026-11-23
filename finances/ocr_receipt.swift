@@ -73,7 +73,7 @@ func renderList(to url: URL) throws {
     let rows: [(CGFloat, NSColor, String)] = [
         (420, NSColor.white, "Aug 13  CURSOR USAGE JUL  Purchase  -$17.70"),
         (260, NSColor.white, "Apr 07  CURSOR USAGE MID MAY  Purchase  -$21.74"),
-        (100, NSColor(calibratedRed: 0.86, green: 0.15, blue: 0.18, alpha: 1), "May 11  CURSOR AI POWERED IDE  Purchase  -$205.44"),
+        (100, NSColor(calibratedRed: 0.92, green: 0.95, blue: 1.0, alpha: 1), "May 11  CURSOR AI POWERED IDE  Purchase  -$205.44"),
     ]
     for (y, color, text) in rows {
         color.setFill()
@@ -186,22 +186,44 @@ func recognize(_ url: URL) throws {
     }
     let background = colors.sorted { ($0.0 + $0.1 + $0.2) > ($1.0 + $1.1 + $1.2) }[colors.count / 2]
     let distances = colors.map { colorDistance($0, background) }
-    let medianDistance = distances.sorted()[distances.count / 2]
-    var highlighted = Array(repeating: false, count: rows.count)
-    for index in rows.indices {
+    func isHeader(_ index: Int) -> Bool {
         let text = lineText(rows[index]).lowercased()
-        let header = text.contains("date") && text.contains("amount")
-        if header { continue }
-        if distances[index] >= 40 && distances[index] >= medianDistance + 28 {
-            highlighted[index] = true
+        return text.contains("date") && text.contains("amount")
+    }
+    func hasMoney(_ index: Int) -> Bool {
+        lineText(rows[index]).range(of: #"\d+\.\d{2}"#, options: .regularExpression) != nil
+    }
+    var best = -1
+    var bestDistance = 0
+    for index in rows.indices where !isHeader(index) {
+        let distance = distances[index]
+        // A tie keeps the lower row. That is the highlighted line when a bank list splits it.
+        if distance > bestDistance || (distance == bestDistance && distance > 0) {
+            bestDistance = distance
+            best = index
+        }
+    }
+    var secondDistance = 0
+    if best >= 0 {
+        for index in rows.indices where !isHeader(index) && abs(index - best) > 1 {
+            if distances[index] > secondDistance { secondDistance = distances[index] }
+        }
+    }
+    var chosen = Set<Int>()
+    if best >= 0, bestDistance >= 18, bestDistance >= secondDistance + 8 {
+        chosen.insert(best)
+        for neighbor in [best - 1, best + 1] where rows.indices.contains(neighbor) && !isHeader(neighbor) {
+            if distances[neighbor] + 10 < bestDistance { continue }
+            if hasMoney(neighbor) && hasMoney(best) { continue }
+            chosen.insert(neighbor)
         }
     }
     var index = 0
     while index < rows.count {
-        if highlighted[index] {
+        if chosen.contains(index) {
             var combined = rows[index]
             var next = index + 1
-            while next < rows.count && highlighted[next] {
+            while next < rows.count && chosen.contains(next) {
                 combined.append(contentsOf: rows[next])
                 next += 1
             }

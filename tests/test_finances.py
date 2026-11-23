@@ -326,6 +326,30 @@ class AppTests(unittest.TestCase):
         self.assertEqual(shared["amount"], "")
         self.assertEqual(shared["spent_on"], "")
         self.assertEqual(shared["payee"], "Cursor")
+        self.assertEqual(shared["description"], "")
+
+        bottom = """
+        Aug -$17.70
+        13 CURSOR USAGE JUL Purchase
+        Aug CURSOR USAGE JUL
+        13 Purchase -$10.46
+        [[highlight]]Аpr CURSOR AI POWERED IDE -$205.44
+        [[highlight]]07 Purchase
+        """
+        bottom_row = receipt_read.parse_receipt_text(
+            bottom,
+            vendors=["Cursor", "Vellum"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertTrue(bottom_row["highlighted"])
+        self.assertEqual(bottom_row["spent_on"], "2026-04-07")
+        self.assertEqual(bottom_row["payee"], "Cursor")
+        self.assertEqual(bottom_row["amount"], "205.44")
+        self.assertEqual(bottom_row["description"], "CURSOR AI POWERED IDE")
+        self.assertNotIn("17.70", bottom_row["amount"])
+        self.assertNotIn("10.46", bottom_row["amount"])
+        self.assertNotIn("USAGE", bottom_row["description"])
 
         detail = """
         Sep 07 Facebook Professional Services Edward T...8066 $2.00

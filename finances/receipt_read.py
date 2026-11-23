@@ -55,6 +55,26 @@ _MONTHS = {
 }
 
 _HIGHLIGHT = "[[highlight]]"
+_HOMOGLYPHS = str.maketrans({
+    "А": "A",
+    "а": "a",
+    "В": "B",
+    "Е": "E",
+    "е": "e",
+    "К": "K",
+    "М": "M",
+    "Н": "H",
+    "О": "O",
+    "о": "o",
+    "Р": "P",
+    "р": "p",
+    "С": "C",
+    "с": "c",
+    "Т": "T",
+    "Х": "X",
+    "х": "x",
+    "у": "y",
+})
 _CATEGORY_HINTS = (
     ("Advertising", ("facebook", "facebk", "instagram", "tiktok", "tik tok", "google ad", "meta ad", "advertising", " ads")),
     ("Software", ("software", "subscription", "adobe", "cursor", "photoshop", "vellum", "prowriting", "techsmith")),
@@ -174,23 +194,27 @@ def parse_receipt_text(
     books: list[str] | tuple[str, ...] = (),
 ) -> dict[str, object]:
     """Turn OCR text into expense fields. Missing values are empty strings."""
-    lines = [_clean_line(line) for line in text.replace("\x00", " ").splitlines()]
+    lines = [_clean_line(line.translate(_HOMOGLYPHS)) for line in text.replace("\x00", " ").splitlines()]
     lines = [line for line in lines if line]
     if not lines:
         return _with_filled(empty_fields(), recognized=False, highlighted=False)
-    highlighted = [_clean_line(line[len(_HIGHLIGHT):]) for line in lines if line.startswith(_HIGHLIGHT)]
+    lines = _join_visual_rows(lines)
+    highlighted = [_plain_line(line) for line in lines if line.startswith(_HIGHLIGHT)]
     highlighted = [line for line in highlighted if line]
-    others = [line for line in lines if not line.startswith(_HIGHLIGHT)]
-    # A colored banner with no amount is not the transaction Edward selected.
-    if highlighted and any(_money_hits(_charge_text(line)) for line in highlighted):
-        fields = _fields_from_lines(
-            highlighted,
-            vendors=vendors,
-            categories=categories,
-            books=books,
-            year_lines=others,
-        )
-        return _with_filled(fields, recognized=True, highlighted=True)
+    if highlighted:
+        # Date, payee, amount, and description all come from the highlighted row.
+        # When a list marks more than one line, the highlighted transaction is the bottom one.
+        with_money = [line for line in highlighted if _money_hits(_charge_text(line))]
+        if with_money:
+            chosen = with_money[-1]
+            fields = _fields_from_lines(
+                [chosen],
+                vendors=vendors,
+                categories=categories,
+                books=books,
+                year_lines=[chosen],
+            )
+            return _with_filled(fields, recognized=True, highlighted=True)
     plain = [_plain_line(line) for line in lines]
     plain = [line for line in plain if line]
     if _is_transaction_list(plain):
@@ -204,6 +228,34 @@ def _plain_line(line: str) -> str:
     if line.startswith(_HIGHLIGHT):
         return _clean_line(line[len(_HIGHLIGHT):])
     return line
+
+
+def _needs_day(line: str) -> bool:
+    """A bank date cell prints the month above the day, sometimes beside the amount."""
+    if not _month_name(line):
+        return False
+    stripped = _MONEY.sub(" ", line)
+    stripped = re.sub(r"\b20\d{2}\b", " ", stripped)
+    return re.search(r"\b\d{1,2}\b", stripped) is None
+
+
+def _join_visual_rows(lines: list[str]) -> list[str]:
+    """Join the two OCR lines of one bank row so its fields stay together."""
+    joined: list[str] = []
+    index = 0
+    while index < len(lines):
+        if index + 1 < len(lines) and _needs_day(_plain_line(lines[index])) and re.match(
+            r"\d{1,2}\b", _plain_line(lines[index + 1])
+        ):
+            text = _clean_line(f"{_plain_line(lines[index])} {_plain_line(lines[index + 1])}")
+            if lines[index].startswith(_HIGHLIGHT) or lines[index + 1].startswith(_HIGHLIGHT):
+                text = _HIGHLIGHT + text
+            joined.append(text)
+            index += 2
+            continue
+        joined.append(lines[index])
+        index += 1
+    return joined
 
 
 def read_image(
@@ -375,9 +427,8 @@ def _is_transaction_list(lines: list[str]) -> bool:
         if not _SKIP_AMOUNT.search(_charge_text(line))
         for hit in _money_hits(_charge_text(line))
     ]
-    months = sum(1 for line in lines if _month_name(line))
-    # Several charges and no chosen row: do not guess the first one.
-    return len(charges) >= 2 and (months >= 2 or len(charges) >= 3)
+    # Several charges and no chosen row: do not mix one row's description with another's amount.
+    return len(charges) >= 2
 
 
 def _is_header(line: str) -> bool:
