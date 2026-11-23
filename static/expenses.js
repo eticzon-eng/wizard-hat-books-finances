@@ -850,14 +850,13 @@ $("expenseReceipts")?.addEventListener("click", async (event) => {
 $("expenseWriteOffPercent")?.addEventListener("input", updateWriteOffHint);
 $("expenseAmount")?.addEventListener("input", updateWriteOffHint);
 
-$("discardExpenseBtn")?.addEventListener("click", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  discardExpense();
+$("discardExpenseBtn")?.addEventListener("click", () => {
+  dropUnsavedExpenseEdits();
 });
 
 $("expenseDialog")?.addEventListener("close", () => {
   dropUnsavedExpenseEdits();
+  resetExpenseForm();
 });
 
 $("saveExpenseBtn")?.addEventListener("click", async () => {

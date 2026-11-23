@@ -71,9 +71,9 @@ func renderList(to url: URL) throws {
     let font = NSFont.monospacedSystemFont(ofSize: 28, weight: .regular)
     let textColor = NSColor.black
     let rows: [(CGFloat, NSColor, String)] = [
-        (400, NSColor.white, "Aug 13  CURSOR USAGE JUL  Purchase  -$17.70"),
-        (300, NSColor(calibratedRed: 0.78, green: 0.88, blue: 1.0, alpha: 1), "Apr 07  CURSOR AI POWERED IDE  Purchase  -$205.44"),
-        (200, NSColor.white, "May 11  CURSOR USAGE MID MAY  Purchase  -$21.74"),
+        (420, NSColor.white, "Aug 13  CURSOR USAGE JUL  Purchase  -$17.70"),
+        (260, NSColor.white, "Apr 07  CURSOR USAGE MID MAY  Purchase  -$21.74"),
+        (100, NSColor(calibratedRed: 0.86, green: 0.15, blue: 0.18, alpha: 1), "May 11  CURSOR AI POWERED IDE  Purchase  -$205.44"),
     ]
     for (y, color, text) in rows {
         color.setFill()
@@ -96,31 +96,44 @@ func colorDistance(_ left: (Int, Int, Int), _ right: (Int, Int, Int)) -> Int {
     abs(left.0 - right.0) + abs(left.1 - right.1) + abs(left.2 - right.2)
 }
 
+func isMarkedRed(_ rgb: (Int, Int, Int)) -> Bool {
+    rgb.0 > 140 && rgb.0 > rgb.1 + 45 && rgb.0 > rgb.2 + 45
+}
+
 func rowColor(rep: NSBitmapImageRep, midY: CGFloat) -> (Int, Int, Int)? {
     let width = rep.pixelsWide
     let height = rep.pixelsHigh
     guard width > 4, height > 2 else { return nil }
-    let y = min(max(Int((1 - midY) * CGFloat(height - 1)), 0), height - 1)
+    let center = min(max(Int((1 - midY) * CGFloat(height - 1)), 0), height - 1)
     var samples: [(Int, Int, Int)] = []
-    let step = max(width / 30, 1)
-    var x = step
-    while x < width - step {
-        guard let color = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else {
+    let step = max(width / 40, 1)
+    for dy in [-12, -6, 0, 6, 12] {
+        let y = min(max(center + dy, 0), height - 1)
+        var x = step
+        while x < width - step {
+            guard let color = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else {
+                x += step
+                continue
+            }
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            let luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            // Skip black text. A red row highlight is darker than white and must still count.
+            if alpha > 0.4, luma > 0.08 {
+                samples.append((Int(red * 255), Int(green * 255), Int(blue * 255)))
+            }
             x += step
-            continue
         }
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-        let rgb = (Int(red * 255), Int(green * 255), Int(blue * 255))
-        if alpha > 0.4, rgb.0 + rgb.1 + rgb.2 > 180 * 3 {
-            samples.append(rgb)
-        }
-        x += step
     }
     guard samples.count >= 3 else { return nil }
+    let reds = samples.filter(isMarkedRed)
+    if reds.count >= 3, reds.count * 8 >= samples.count {
+        let sorted = reds.sorted { ($0.0 + $0.1 + $0.2) < ($1.0 + $1.1 + $1.2) }
+        return sorted[sorted.count / 2]
+    }
     samples.sort { ($0.0 + $0.1 + $0.2) < ($1.0 + $1.1 + $1.2) }
     return samples[samples.count / 2]
 }

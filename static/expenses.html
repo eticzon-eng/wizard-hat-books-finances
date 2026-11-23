@@ -129,12 +129,12 @@
           <div id="expenseReceipts" class="receipt-list"></div>
         </label>
         <p class="muted hidden" id="expenseSavedHint"></p>
-        <div class="button-row">
-          <button type="button" class="btn primary" id="saveExpenseBtn">Save</button>
-          <button type="button" class="btn" id="discardExpenseBtn">Discard</button>
-          <button type="button" class="btn" id="saveAndAddExpenseBtn">Save and add another</button>
-          <button type="button" class="btn danger hidden" id="deleteExpenseBtn">Delete</button>
-        </div>
+      </div>
+      <div class="button-row dialog-actions">
+        <button type="button" class="btn primary" id="saveExpenseBtn">Save</button>
+        <button type="submit" class="btn" id="discardExpenseBtn" value="cancel" formnovalidate>Discard</button>
+        <button type="button" class="btn" id="saveAndAddExpenseBtn">Save and add another</button>
+        <button type="button" class="btn danger hidden" id="deleteExpenseBtn">Delete</button>
       </div>
     </form>
   </dialog>

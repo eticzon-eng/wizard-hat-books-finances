@@ -372,11 +372,12 @@ def _is_transaction_list(lines: list[str]) -> bool:
     charges = [
         hit
         for line in lines
-        if not _SKIP_AMOUNT.search(line)
-        for hit in _money_hits(line)
+        if not _SKIP_AMOUNT.search(_charge_text(line))
+        for hit in _money_hits(_charge_text(line))
     ]
     months = sum(1 for line in lines if _month_name(line))
-    return len(charges) >= 2 and months >= 2
+    # Several charges and no chosen row: do not guess the first one.
+    return len(charges) >= 2 and (months >= 2 or len(charges) >= 3)
 
 
 def _is_header(line: str) -> bool:

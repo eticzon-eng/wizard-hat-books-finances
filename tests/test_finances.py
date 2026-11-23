@@ -457,8 +457,10 @@ class AppTests(unittest.TestCase):
         self.assertTrue(chosen["highlighted"])
         self.assertEqual(chosen["amount"], "205.44")
         self.assertEqual(chosen["payee"], "Cursor")
-        self.assertEqual(chosen["spent_on"], "2026-04-07")
+        self.assertEqual(chosen["spent_on"], "2026-05-11")
+        self.assertEqual(chosen["description"], "CURSOR AI POWERED IDE")
         self.assertNotIn("17.70", chosen["amount"])
+        self.assertNotIn("21.74", chosen["amount"])
         self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before_list)
 
     def test_library_seed_imports_through_the_model(self):

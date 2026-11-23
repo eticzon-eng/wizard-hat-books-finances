@@ -265,15 +265,25 @@ tr:last-child td { border-bottom: 0; }
 }
 
 dialog {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   padding: 0;
   width: min(980px, calc(100% - 2rem));
   max-height: calc(100vh - 2rem);
+  overflow: hidden;
   background: var(--paper);
   box-shadow: var(--shadow);
 }
 dialog::backdrop { background: rgba(26, 26, 26, 0.55); }
-.dialog-body { margin: 0; }
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 2rem);
+  margin: 0;
+  overflow: hidden;
+}
 .dialog-header {
   display: flex;
   justify-content: space-between;
@@ -283,7 +293,19 @@ dialog::backdrop { background: rgba(26, 26, 26, 0.55); }
   border-bottom: 1px solid var(--line);
 }
 .dialog-header h2 { margin: 0; font-family: var(--serif); font-size: 1.35rem; }
-.expense-body { padding: 1.25rem; }
+.expense-body {
+  padding: 1.25rem;
+  overflow: auto;
+  min-height: 0;
+}
+.dialog-actions {
+  flex: none;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.85rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
 .expense-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -301,6 +323,7 @@ dialog::backdrop { background: rgba(26, 26, 26, 0.55); }
 }
 .receipt-drop {
   position: relative;
+  overflow: hidden;
   border: 1px dashed var(--line);
   border-radius: 12px;
   background: white;
