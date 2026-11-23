@@ -291,6 +291,95 @@ class AppTests(unittest.TestCase):
         for name in receipt_read.FIELD_NAMES:
             self.assertEqual(blank[name], "")
 
+        highlighted = """
+        Aug 13 CURSOR USAGE JUL Purchase -$17.70
+        [[highlight]]Apr 07 CURSOR AI POWERED IDE Purchase -$205.44
+        May 11 CURSOR USAGE MID MAY Purchase -$21.74
+        """
+        picked = receipt_read.parse_receipt_text(
+            highlighted,
+            vendors=["Cursor"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertTrue(picked["highlighted"])
+        self.assertEqual(picked["spent_on"], "2026-04-07")
+        self.assertEqual(picked["payee"], "Cursor")
+        self.assertEqual(picked["amount"], "205.44")
+        self.assertEqual(picked["currency"], "USD")
+        self.assertEqual(picked["description"], "CURSOR AI POWERED IDE")
+        self.assertEqual(picked["payment_method"], "Purchase")
+        self.assertNotEqual(picked["amount"], "17.70")
+
+        unhighlighted = """
+        Aug 13 CURSOR USAGE JUL Purchase -$17.70
+        Apr 07 CURSOR AI POWERED IDE Purchase -$205.44
+        May 11 CURSOR USAGE MID MAY Purchase -$21.74
+        """
+        shared = receipt_read.parse_receipt_text(
+            unhighlighted,
+            vendors=["Cursor"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertFalse(shared["highlighted"])
+        self.assertEqual(shared["amount"], "")
+        self.assertEqual(shared["spent_on"], "")
+        self.assertEqual(shared["payee"], "Cursor")
+
+        detail = """
+        Sep 07 Facebook Professional Services Edward T...8066 $2.00
+        You earned $0.03 Rewards cash with this transaction!
+        Purchased: Sun, Sep 6, 2026
+        Posted: Mon, Sep 7, 2026
+        Appears on statement as: FACEBK *JNFTA2WE34
+        """
+        facebook = receipt_read.parse_receipt_text(
+            detail,
+            vendors=["Meta"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertEqual(facebook["spent_on"], "2026-09-07")
+        self.assertEqual(facebook["payee"], "Meta")
+        self.assertEqual(facebook["amount"], "2.00")
+        self.assertEqual(facebook["currency"], "USD")
+        self.assertEqual(facebook["category"], "Advertising")
+        self.assertEqual(facebook["description"], "FACEBK *JNFTA2WE34")
+
+        same_line = """
+        ^ 07 Facebook 1.5% cash back $2.00
+        You earned $0.03 Rewards cash with this transaction!
+        Posted: Mon, Sep 7, 2026
+        Аppears on statement as: FACEBK *JNFTA2WE34
+        """
+        reward_line = receipt_read.parse_receipt_text(
+            same_line,
+            vendors=["Meta"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertEqual(reward_line["amount"], "2.00")
+        self.assertEqual(reward_line["spent_on"], "2026-09-07")
+        self.assertEqual(reward_line["description"], "FACEBK *JNFTA2WE34")
+        self.assertFalse(reward_line["highlighted"])
+
+        banner = """
+        [[highlight]]Payment complete! Work with Hannah again?
+        Total $2,602.60
+        Payment received Jul 27, 2026
+        Developmental Editing
+        """
+        invoice = receipt_read.parse_receipt_text(
+            banner,
+            vendors=["Reedsy"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertFalse(invoice["highlighted"])
+        self.assertEqual(invoice["amount"], "2602.60")
+        self.assertEqual(invoice["spent_on"], "2026-07-27")
+
         before = self.client.get("/api/expenses").json()["expenses"]
         tiny = bytes.fromhex(
             "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753"
@@ -355,6 +444,22 @@ class AppTests(unittest.TestCase):
         for name in receipt_read.FIELD_NAMES:
             self.assertEqual(blank.json()[name], "")
         self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before)
+
+        listed = Path(self.tmp.name) / "list.png"
+        receipt_read.render_highlighted_list(listed)
+        before_list = self.client.get("/api/expenses").json()["expenses"]
+        read_list = self.client.post(
+            "/api/expenses/read-receipt",
+            files={"file": ("list.png", listed.read_bytes(), "image/png")},
+        )
+        self.assertEqual(read_list.status_code, 200, read_list.text)
+        chosen = read_list.json()
+        self.assertTrue(chosen["highlighted"])
+        self.assertEqual(chosen["amount"], "205.44")
+        self.assertEqual(chosen["payee"], "Cursor")
+        self.assertEqual(chosen["spent_on"], "2026-04-07")
+        self.assertNotIn("17.70", chosen["amount"])
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before_list)
 
     def test_library_seed_imports_through_the_model(self):
         seed = json.loads((ROOT / "seeds" / "expenses.json").read_text(encoding="utf-8"))

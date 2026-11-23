@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from datetime import date
 from pathlib import Path
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".tif", ".tiff", ".heic"}
@@ -53,9 +54,10 @@ _MONTHS = {
     "december": 12,
 }
 
+_HIGHLIGHT = "[[highlight]]"
 _CATEGORY_HINTS = (
-    ("Advertising", ("facebook ad", "instagram ad", "google ad", "meta ad", "advertising", " ads")),
-    ("Software", ("software", "subscription", "adobe", "cursor", "photoshop", "saas")),
+    ("Advertising", ("facebook", "facebk", "instagram", "tiktok", "tik tok", "google ad", "meta ad", "advertising", " ads")),
+    ("Software", ("software", "subscription", "adobe", "cursor", "photoshop", "vellum", "prowriting", "techsmith")),
     ("Internet", ("internet", "spectrum", "cox", "broadband")),
     ("Mobile Phone", ("mobile phone", "cell phone", "verizon", "wireless")),
     ("Domain / web", ("domain", "cloudflare", "web hosting", "website hosting")),
@@ -63,8 +65,27 @@ _CATEGORY_HINTS = (
     ("Publishing", ("isbn", "bowker", "ingram", "publishing")),
     ("Shipping", ("shipping", "postage", "ups", "fedex", "usps")),
     ("Supplies", ("supplies", "office depot")),
-    ("Utilities", ("electric", "utility", "utilities", "energy bill")),
+    ("Utilities", ("electric", "utility", "utilities", "energy")),
     ("Professional services", ("consulting", "professional services", "reedsy", "editing")),
+)
+_VENDOR_ALIASES = (
+    ("meta", ("facebook", "facebk")),
+    ("cursor", ("cursor",)),
+    ("tiktok", ("tiktok", "tik tok")),
+    ("cox", ("cox communications", "spectrum")),
+    ("verizon", ("verizon",)),
+    ("prowriting", ("prowritingaid",)),
+    ("paddle", ("paddle", "vellum")),
+    ("reedsy", ("reedsy",)),
+    ("cloudflare", ("cloudflare",)),
+    ("amazon", ("amazon",)),
+    ("sticker", ("sticker mule",)),
+    ("bowker", ("bowker",)),
+    ("zeely", ("zeely",)),
+    ("techsmith", ("techsmith",)),
+    ("ingram", ("ingram",)),
+    ("goodreads", ("goodreads",)),
+    ("revvue", ("revvue",)),
 )
 
 _BANKS = re.compile(
@@ -80,7 +101,7 @@ _MDY_DATE = re.compile(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b")
 _MONTH_DATE = re.compile(
     r"\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
     r"aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+"
-    r"(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d{2})\b",
+    r"(\d{1,2})(?:st|nd|rd|th)?,?\s*(20\d{2})\b",
     re.IGNORECASE,
 )
 _DMY_MONTH = re.compile(
@@ -92,7 +113,7 @@ _DMY_MONTH = re.compile(
 )
 _MONEY = re.compile(
     r"(?P<sign>[-−(])?\s*"
-    r"(?P<prefix>[$€£]|USD|EUR|GBP|CAD)?\s*"
+    r"(?P<prefix>(?:US\s*)?[$€£]|USD|EUR|GBP|CAD)?\s*"
     r"(?P<num>\d{1,3}(?:,\d{3})+\.\d{2}|\d+\.\d{2})\)?\s*"
     r"(?P<suffix>USD|EUR|GBP|CAD)?",
     re.IGNORECASE,
@@ -106,7 +127,7 @@ _LABELED_DESCRIPTION = re.compile(
     re.IGNORECASE,
 )
 _NOTE = re.compile(
-    r"\b((?:invoice|order|confirmation|reference|transaction(?:\s+id)?)"
+    r"\b((?:invoice|order|confirmation|reference|collaboration|transaction(?:\s+id)?)"
     r"\s*(?:#|no\.?|number|code|id)?\s*[:#]?\s*[A-Z0-9][A-Z0-9-]{2,})\b",
     re.IGNORECASE,
 )
@@ -115,6 +136,27 @@ _TOTAL_LINE = re.compile(r"\btotal\b", re.IGNORECASE)
 _SUBTOTAL_LINE = re.compile(r"\b(subtotal|tax|tip|fee)\b", re.IGNORECASE)
 _AMOUNT_LINE = re.compile(
     r"\b(amount paid|amount due|amount|charged|you paid|debit|payment)\b",
+    re.IGNORECASE,
+)
+_SKIP_AMOUNT = re.compile(
+    r"reward|cash back|you earned|subtotal|\btax\b|\bfee\b|\bbalance\b",
+    re.IGNORECASE,
+)
+_PAYMENT_PHRASE = re.compile(
+    r"\b(bill payment|electronic transfer|debit card(?: purchase)?|credit card|"
+    r"apple pay|google pay|paypal|venmo|visa(?: debit)?|mastercard|american express|"
+    r"purchase|merchandise|auto pay|ach)\b",
+    re.IGNORECASE,
+)
+_STATEMENT_AS = re.compile(r"statement as:\s*(.+)", re.IGNORECASE)
+_POSTED = re.compile(r"\bposted\b", re.IGNORECASE)
+_BILLING = re.compile(r"\bbilling date\b", re.IGNORECASE)
+_RECEIVED = re.compile(r"\bpayment received\b", re.IGNORECASE)
+_STATEMENT_ENDING = re.compile(r"\bstatement ending\b", re.IGNORECASE)
+_PURCHASED = re.compile(r"\bpurchased\b", re.IGNORECASE)
+_TOTAL_LINE_WORD = re.compile(r"\btotal\b|your order", re.IGNORECASE)
+_HEADER_LINE = re.compile(
+    r"\b(date|description|amount|category|balance)\b",
     re.IGNORECASE,
 )
 _CURRENCY = {"$": "USD", "€": "EUR", "£": "GBP"}
@@ -132,24 +174,36 @@ def parse_receipt_text(
     books: list[str] | tuple[str, ...] = (),
 ) -> dict[str, object]:
     """Turn OCR text into expense fields. Missing values are empty strings."""
-    fields = empty_fields()
-    cleaned = text.replace("\x00", " ")
-    lines = [_clean_line(line) for line in cleaned.splitlines()]
+    lines = [_clean_line(line) for line in text.replace("\x00", " ").splitlines()]
     lines = [line for line in lines if line]
-    if not lines and not cleaned.strip():
-        return _with_filled(fields, recognized=False)
+    if not lines:
+        return _with_filled(empty_fields(), recognized=False, highlighted=False)
+    highlighted = [_clean_line(line[len(_HIGHLIGHT):]) for line in lines if line.startswith(_HIGHLIGHT)]
+    highlighted = [line for line in highlighted if line]
+    others = [line for line in lines if not line.startswith(_HIGHLIGHT)]
+    # A colored banner with no amount is not the transaction Edward selected.
+    if highlighted and any(_money_hits(_charge_text(line)) for line in highlighted):
+        fields = _fields_from_lines(
+            highlighted,
+            vendors=vendors,
+            categories=categories,
+            books=books,
+            year_lines=others,
+        )
+        return _with_filled(fields, recognized=True, highlighted=True)
+    plain = [_plain_line(line) for line in lines]
+    plain = [line for line in plain if line]
+    if _is_transaction_list(plain):
+        fields = _fields_from_list(plain, vendors=vendors, categories=categories)
+        return _with_filled(fields, recognized=True, highlighted=False)
+    fields = _fields_from_lines(plain, vendors=vendors, categories=categories, books=books, year_lines=plain)
+    return _with_filled(fields, recognized=True, highlighted=False)
 
-    fields["spent_on"] = _date(lines)
-    amount, currency = _amount(lines)
-    fields["amount"] = amount
-    fields["currency"] = currency
-    fields["payee"] = _payee(lines, vendors)
-    fields["category"] = _category(cleaned, categories)
-    fields["payment_method"] = _payment(lines)
-    fields["title"] = _book(cleaned, books)
-    fields["description"] = _description(lines, fields["payee"], fields["title"])
-    fields["notes"] = _notes(cleaned)
-    return _with_filled(fields, recognized=True)
+
+def _plain_line(line: str) -> str:
+    if line.startswith(_HIGHLIGHT):
+        return _clean_line(line[len(_HIGHLIGHT):])
+    return line
 
 
 def read_image(
@@ -161,7 +215,7 @@ def read_image(
 ) -> dict[str, object]:
     text = ocr_image(path)
     if not text.strip():
-        return _with_filled(empty_fields(), recognized=False)
+        return _with_filled(empty_fields(), recognized=False, highlighted=False)
     return parse_receipt_text(text, vendors=vendors, categories=categories, books=books)
 
 
@@ -186,6 +240,21 @@ def ocr_image(path: Path) -> str:
     if result.returncode != 0:
         return ""
     return result.stdout
+
+
+def render_highlighted_list(path: Path) -> None:
+    binary = _ocr_binary()
+    if binary is None:
+        raise RuntimeError("Receipt OCR is not available on this computer.")
+    result = subprocess.run(
+        [str(binary), "--render-list", str(path)],
+        capture_output=True,
+        text=True,
+        timeout=40,
+        check=False,
+    )
+    if result.returncode != 0 or not path.is_file():
+        raise RuntimeError(result.stderr.strip() or "Could not draw the highlighted list.")
 
 
 def render_receipt_image(path: Path, text: str) -> None:
@@ -225,19 +294,119 @@ def _ocr_binary() -> Path | None:
     return dest
 
 
-def _with_filled(fields: dict[str, str], *, recognized: bool) -> dict[str, object]:
+def _with_filled(fields: dict[str, str], *, recognized: bool, highlighted: bool) -> dict[str, object]:
     filled = [name for name in FIELD_NAMES if fields[name]]
-    return {**fields, "filled": filled, "recognized": recognized}
+    return {**fields, "filled": filled, "recognized": recognized, "highlighted": highlighted}
 
 
 def _clean_line(line: str) -> str:
     return re.sub(r"\s+", " ", line).strip()
 
 
-def _date(lines: list[str]) -> str:
-    labeled = [line for line in lines if _DATE_LINE.search(line)]
-    for line in labeled + lines:
-        found = _date_in(line)
+def _fields_from_lines(
+    lines: list[str],
+    *,
+    vendors: list[str] | tuple[str, ...],
+    categories: list[str] | tuple[str, ...],
+    books: list[str] | tuple[str, ...],
+    year_lines: list[str],
+) -> dict[str, str]:
+    lines = _join_stacked_dates(lines)
+    fields = empty_fields()
+    blob = "\n".join(lines)
+    fields["spent_on"] = _date(lines, year_lines)
+    amount, currency = _amount(lines)
+    fields["amount"] = amount
+    fields["currency"] = currency
+    fields["payee"] = _payee(lines, vendors)
+    fields["category"] = _category(blob, categories)
+    fields["payment_method"] = _payment(lines)
+    fields["title"] = _book(blob, books)
+    fields["description"] = _description(lines, fields["payee"], fields["title"])
+    fields["notes"] = _notes(blob)
+    return fields
+
+
+def _join_stacked_dates(lines: list[str]) -> list[str]:
+    """Join a month printed above its day, as bank lists often do."""
+    joined: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        month_only = _month_name(line) and not re.search(r"\d", line)
+        if month_only and index + 1 < len(lines) and re.match(r"\d{1,2}\b", lines[index + 1]):
+            joined.append(_clean_line(f"{line} {lines[index + 1]}"))
+            index += 2
+            continue
+        joined.append(line)
+        index += 1
+    return joined
+
+
+def _fields_from_list(
+    lines: list[str],
+    *,
+    vendors: list[str] | tuple[str, ...],
+    categories: list[str] | tuple[str, ...],
+) -> dict[str, str]:
+    """A transaction list with no highlighted row. Fill only what every row shares."""
+    fields = empty_fields()
+    data_lines = [line for line in lines if not _is_header(line)]
+    payees = [payee for line in data_lines if (payee := _catalog_payee(line, vendors))]
+    unique = list(dict.fromkeys(payees))
+    if len(unique) == 1:
+        fields["payee"] = unique[0]
+        fields["category"] = _category(unique[0] + "\n" + "\n".join(data_lines), categories)
+    payments = [item for line in data_lines if (item := _payment_phrase(line))]
+    unique_payments = list(dict.fromkeys(payments))
+    if len(unique_payments) == 1:
+        fields["payment_method"] = unique_payments[0]
+    return fields
+
+
+def _is_transaction_list(lines: list[str]) -> bool:
+    if any(_POSTED.search(line) or _BILLING.search(line) or _RECEIVED.search(line) for line in lines):
+        return False
+    if any(_TOTAL_LINE_WORD.search(line) or _STATEMENT_AS.search(line) for line in lines):
+        return False
+    charges = [
+        hit
+        for line in lines
+        if not _SKIP_AMOUNT.search(line)
+        for hit in _money_hits(line)
+    ]
+    months = sum(1 for line in lines if _month_name(line))
+    return len(charges) >= 2 and months >= 2
+
+
+def _is_header(line: str) -> bool:
+    folded = line.casefold()
+    words = ("date", "description", "amount", "category", "balance")
+    return sum(word in folded for word in words) >= 3
+
+
+def _date(lines: list[str], year_lines: list[str]) -> str:
+    for pattern, group in (
+        (_POSTED, None),
+        (_BILLING, None),
+        (_RECEIVED, None),
+        (_DATE_LINE, None),
+    ):
+        for line in lines:
+            if pattern is _DATE_LINE and (_POSTED.search(line) or _PURCHASED.search(line) or _STATEMENT_ENDING.search(line)):
+                continue
+            if pattern.search(line):
+                found = _date_in(line) or _month_day(line, year_lines)
+                if found:
+                    return found
+    for line in lines:
+        if _PURCHASED.search(line) or _STATEMENT_ENDING.search(line):
+            continue
+        found = _date_in(line) or _month_day(line, year_lines)
+        if found:
+            return found
+    for line in lines:
+        found = _date_in(line) or _month_day(line, year_lines)
         if found:
             return found
     return ""
@@ -268,38 +437,95 @@ def _valid_date(year: int, month: int, day: int) -> str:
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 
+def _month_name(line: str) -> re.Match[str] | None:
+    return re.search(
+        r"\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
+        r"aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b",
+        line,
+        re.IGNORECASE,
+    )
+
+
+def _month_day(line: str, year_lines: list[str]) -> str:
+    if _date_in(line):
+        return ""
+    month = _month_name(line)
+    if not month:
+        return ""
+    key = month.group(1).lower()
+    if key not in _MONTHS:
+        return ""
+    stripped = _MONEY.sub(" ", line)
+    stripped = re.sub(r"\b20\d{2}\b", " ", stripped)
+    day_match = re.search(r"\b(\d{1,2})\b", stripped)
+    if not day_match:
+        return ""
+    day = int(day_match.group(1))
+    year = _year_on(year_lines) or _inferred_year(_MONTHS[key], day)
+    if not year:
+        return ""
+    return _valid_date(year, _MONTHS[key], day)
+
+
+def _year_on(lines: list[str]) -> int:
+    years = [int(match) for line in lines for match in re.findall(r"\b(20\d{2})\b", line)]
+    unique = list(dict.fromkeys(years))
+    if len(unique) == 1:
+        return unique[0]
+    return 0
+
+
+def _inferred_year(month: int, day: int) -> int:
+    today = date.today()
+    try:
+        candidate = date(today.year, month, day)
+    except ValueError:
+        return 0
+    if candidate > today:
+        return today.year - 1
+    return today.year
+
+
+def _charge_text(line: str) -> str:
+    """Drop a reward clause so the charge on that same line still counts."""
+    text = re.sub(r"you earned\s*[$€£]?\s*\d[\d,]*(?:\.\d+)?", " ", line, flags=re.IGNORECASE)
+    text = re.sub(r"\d+(?:\.\d+)?%\s*cash back", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"rewards?\s*cash", " ", text, flags=re.IGNORECASE)
+    return text
+
+
 def _amount(lines: list[str]) -> tuple[str, str]:
-    totals = [
-        line
-        for line in lines
-        if _TOTAL_LINE.search(line) and not _SUBTOTAL_LINE.search(line)
-    ]
-    labeled = [
-        line
-        for line in lines
-        if _AMOUNT_LINE.search(line) and not _SUBTOTAL_LINE.search(line)
-    ]
-    fallback = [
-        line
-        for line in reversed(lines)
-        if not _SUBTOTAL_LINE.search(line)
-    ]
-    chosen = ""
-    currency = ""
-    for group in (totals, labeled, fallback):
-        for line in group:
-            match = _best_money(line)
-            if match is None:
-                continue
-            chosen = _money_number(match)
-            currency = _money_currency(match)
-            if chosen:
-                break
-        if chosen:
-            break
-    if chosen and not currency:
-        currency = _document_currency(lines)
-    return chosen, currency
+    candidates: list[tuple[str, dict[str, object]]] = []
+    for line in lines:
+        text = _charge_text(line)
+        if _SKIP_AMOUNT.search(text):
+            continue
+        for hit in _money_hits(text):
+            candidates.append((line, hit))
+    if not candidates:
+        return "", ""
+    totals = [item for item in candidates if _TOTAL_LINE_WORD.search(item[0]) and not _SUBTOTAL_LINE.search(item[0])]
+    pool = totals or candidates
+    negatives = [item for item in pool if item[1]["negative"]]
+    chosen_line, hit = (negatives or pool)[0]
+    currency = str(hit["currency"] or "") or _document_currency([chosen_line, *lines])
+    return str(hit["amount"]), currency
+
+
+def _money_hits(line: str) -> list[dict[str, object]]:
+    hits = []
+    for match in _MONEY.finditer(line):
+        number = _money_number(match)
+        if not number:
+            continue
+        hits.append(
+            {
+                "amount": number,
+                "currency": _money_currency(match),
+                "negative": bool(match.group("sign")),
+            }
+        )
+    return hits
 
 
 def _best_money(line: str) -> re.Match[str] | None:
@@ -320,6 +546,8 @@ def _money_number(match: re.Match[str]) -> str:
 def _money_currency(match: re.Match[str]) -> str:
     prefix = (match.group("prefix") or "").upper()
     suffix = (match.group("suffix") or "").upper()
+    if "$" in prefix:
+        return "USD"
     if prefix in _CURRENCY:
         return _CURRENCY[prefix]
     if prefix in {"USD", "EUR", "GBP", "CAD"}:
@@ -349,22 +577,37 @@ def _document_currency(lines: list[str]) -> str:
 
 def _payee(lines: list[str], vendors: list[str] | tuple[str, ...]) -> str:
     blob = "\n".join(lines)
-    known = [name.strip() for name in vendors if _contains_name(blob, name.strip())]
-    if known:
-        return max(known, key=len)
+    catalog = _catalog_payee(blob, vendors)
+    if catalog:
+        return catalog
     for line in lines:
         labeled = _LABELED_PAYEE.search(line)
         if labeled:
             value = labeled.group(1).strip(" -:")
             if _looks_like_name(value):
                 return value[:80]
-    if not any(_date_in(line) or _best_money(line) for line in lines):
+    if not any(_date_in(line) or _money_hits(line) for line in lines):
         return ""
     for line in lines:
-        if _skip_payee_line(line):
+        if _skip_payee_line(line) or _is_header(line):
             continue
         if _looks_like_name(line):
             return line[:80]
+    return ""
+
+
+def _catalog_payee(text: str, vendors: list[str] | tuple[str, ...]) -> str:
+    folded = text.casefold()
+    names = [name.strip() for name in vendors if name.strip()]
+    for needle, keys in _VENDOR_ALIASES:
+        if not any(key in folded for key in keys):
+            continue
+        matches = [name for name in names if needle in name.casefold() or any(key in name.casefold() for key in keys)]
+        if matches:
+            return max(matches, key=len)
+    known = [name for name in names if _contains_name(text, name)]
+    if known:
+        return max(known, key=len)
     return ""
 
 
@@ -411,30 +654,112 @@ def _category(text: str, categories: list[str] | tuple[str, ...]) -> str:
 
 def _description(lines: list[str], payee: str, title: str) -> str:
     for line in lines:
+        stated = _STATEMENT_AS.search(line)
+        if stated:
+            value = stated.group(1).strip(" .")
+            if value:
+                return value[:140]
+    for line in lines:
         labeled = _LABELED_DESCRIPTION.search(line)
         if not labeled:
             continue
         value = labeled.group(1).strip()
         if value and value.casefold() not in {payee.casefold(), title.casefold()}:
             return value[:140]
-    if not any(_date_in(line) or _best_money(line) for line in lines):
-        return ""
     for line in lines:
-        if _skip_payee_line(line) or not _looks_like_name(line):
+        service = re.search(r"\bservice\s+(?!provider\b|summary\b)(.+)", line, re.IGNORECASE)
+        if service and service.group(1).strip():
+            return service.group(1).strip()[:140]
+    for line in lines:
+        if not _money_hits(line):
             continue
-        if payee and payee.casefold() in line.casefold():
+        if _SKIP_AMOUNT.search(_charge_text(line)) or _TOTAL_LINE_WORD.search(line):
             continue
-        if title and line.casefold() == title.casefold():
+        item = _row_description(line)
+        if item and not _mostly_payee(item, payee) and item.casefold() != title.casefold():
+            return item[:140]
+    if not any(_date_in(line) or _money_hits(line) or _month_name(line) for line in lines):
+        return ""
+    leftovers = []
+    for line in lines:
+        leftover = _row_description(line)
+        if not leftover or leftover.casefold() in {payee.casefold(), title.casefold()}:
             continue
-        return line[:140]
-    return ""
+        leftovers.append(leftover)
+    for leftover in leftovers:
+        if _mostly_payee(leftover, payee):
+            continue
+        return leftover[:140]
+    return leftovers[0][:140] if leftovers else ""
+
+
+def _mostly_payee(text: str, payee: str) -> bool:
+    if not payee:
+        return False
+    folded = re.sub(r"[^a-z0-9 ]", " ", text.casefold())
+    name = re.sub(r"[^a-z0-9 ]", " ", payee.casefold())
+    if name not in folded:
+        return False
+    words = [word for word in folded.replace(name, " ").split() if word]
+    generic = {"platforms", "inc", "llc", "ltd", "com", "corp", "corporation", "communications"}
+    return all(word in generic for word in words)
+
+
+def _row_description(line: str) -> str:
+    text = _MONEY.sub(" ", line)
+    text = _PAYMENT_PHRASE.sub(" ", text)
+    text = _MONTH_DATE.sub(" ", text)
+    text = _MDY_DATE.sub(" ", text)
+    text = re.sub(
+        r"\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
+        r"aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\b\d{1,2}\b", " ", text)
+    text = re.sub(r"[^A-Za-z0-9&*'/., -]", " ", text)
+    text = _clean_line(text).strip(" -*,.")
+    if not text or _is_header(text) or _HEADER.match(text) or len(text) < 3:
+        return ""
+    if re.search(r"reward|you earned|report a problem|merchant website|cash back|professional services", text, re.IGNORECASE):
+        return ""
+    if re.match(r"(order|receipt|invoice|your order|payment)\b", text, re.IGNORECASE):
+        return ""
+    if re.match(r"edward\b", text, re.IGNORECASE):
+        return ""
+    if _BANKS.search(text) and len(text.split()) <= 4:
+        return ""
+    return text
 
 
 def _payment(lines: list[str]) -> str:
     for line in lines:
-        if _payment_line(line) and len(line) <= 60:
-            return line
+        card = re.search(r"\b(?:card ending|ending)\s*(\d{4})\b", line, re.IGNORECASE)
+        if card:
+            return f"Card ending {card.group(1)}"
+        masked = re.search(r"(?:mastercard|visa).{0,40}(\d{4})", line, re.IGNORECASE)
+        if masked:
+            brand = "Mastercard" if "mastercard" in line.casefold() else "Visa"
+            return f"{brand} {masked.group(1)}"
+        named = re.search(r"\b[A-Z]\.{2,}\s*(\d{4})\b", line)
+        if named:
+            return f"Card ending {named.group(1)}"
+    for line in lines:
+        phrase = _payment_phrase(line)
+        if phrase:
+            return phrase
     return ""
+
+
+def _payment_phrase(line: str) -> str:
+    match = _PAYMENT_PHRASE.search(line)
+    if not match:
+        return ""
+    phrase = match.group(1)
+    if phrase.casefold() == "visa debit":
+        return "Visa debit"
+    return phrase[:1].upper() + phrase[1:] if phrase.islower() or phrase[:1].islower() else phrase
 
 
 def _payment_line(line: str) -> bool:
@@ -458,4 +783,7 @@ def _notes(text: str) -> str:
     match = _NOTE.search(text)
     if not match:
         return ""
-    return re.sub(r"\s+", " ", match.group(1)).strip()[:160]
+    value = re.sub(r"\s+", " ", match.group(1)).strip()[:160]
+    if not re.search(r"\d", value):
+        return ""
+    return value

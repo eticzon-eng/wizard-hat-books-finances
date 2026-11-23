@@ -560,7 +560,8 @@ function receiptReadHint(fields) {
   }
   const filledText = `Filled ${filled.map((name) => RECEIPT_FIELD_LABELS[name]).join(", ")}.`;
   const blankText = blank.length ? ` Left blank: ${blank.join(", ")}.` : "";
-  return `${filledText}${blankText} Nothing is saved until you click Save.`;
+  const source = fields.highlighted ? "Used the highlighted line. " : "";
+  return `${source}${filledText}${blankText} Nothing is saved until you click Save.`;
 }
 
 let receiptReadToken = 0;
