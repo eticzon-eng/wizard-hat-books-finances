@@ -487,6 +487,31 @@ class AppTests(unittest.TestCase):
         self.assertNotIn("21.74", chosen["amount"])
         self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before_list)
 
+    def test_red_rectangle_uses_only_the_boxed_bank_row(self):
+        if not receipt_read.ocr_available():
+            self.skipTest("macOS Vision OCR is not available")
+        self.client.post("/api/expense-vendors", json={"name": "Meta"})
+        image = ROOT / "tests" / "fixtures" / "highlighted-bank-row.png"
+        before = self.client.get("/api/expenses").json()["expenses"]
+        read = self.client.post(
+            "/api/expenses/read-receipt",
+            files={"file": ("highlighted-bank-row.png", image.read_bytes(), "image/png")},
+        )
+        self.assertEqual(read.status_code, 200, read.text)
+        body = read.json()
+        self.assertTrue(body["highlighted"])
+        self.assertEqual(body["spent_on"], "2026-10-26")
+        self.assertEqual(body["payee"], "Meta")
+        self.assertEqual(body["amount"], "12.32")
+        self.assertEqual(body["currency"], "USD")
+        self.assertEqual(body["description"], "FACEBK *KKCD5BAE34 650-543-7818 CA")
+        self.assertEqual(body["category"], "Advertising")
+        for leftover in ("8N4EXBAE34", "16.29", "113.27", "PAYMENT", "XR, LLC", "Merchandise"):
+            self.assertNotIn(leftover, body["description"])
+            self.assertNotIn(leftover, body["amount"])
+            self.assertNotIn(leftover, body["payee"])
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before)
+
     def test_library_seed_imports_through_the_model(self):
         seed = json.loads((ROOT / "seeds" / "expenses.json").read_text(encoding="utf-8"))
         self.assertEqual(len(seed), 90)

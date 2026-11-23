@@ -138,6 +138,69 @@ func rowColor(rep: NSBitmapImageRep, midY: CGFloat) -> (Int, Int, Int)? {
     return samples[samples.count / 2]
 }
 
+func isStrokeRed(_ red: Int, _ green: Int, _ blue: Int) -> Bool {
+    red >= 180 && green < 150 && blue < 150 && red > green + 60 && red > blue + 60
+}
+
+func redRectangle(in rep: NSBitmapImageRep) -> CGRect? {
+    let width = rep.pixelsWide
+    let height = rep.pixelsHigh
+    guard width > 40, height > 40, let raw = rep.bitmapData else { return nil }
+    let spp = rep.samplesPerPixel
+    let bpr = rep.bytesPerRow
+    let pixelStride = max(rep.bitsPerPixel / 8, spp)
+    guard spp >= 3, pixelStride >= 3 else { return nil }
+    let alphaFirst = rep.bitmapFormat.contains(.alphaFirst)
+    func channels(_ x: Int, _ y: Int) -> (Int, Int, Int) {
+        let pixel = raw.advanced(by: y * bpr + x * pixelStride)
+        let start = alphaFirst ? 1 : 0
+        return (Int(pixel[start]), Int(pixel[start + 1]), Int(pixel[start + 2]))
+    }
+    var minX = width
+    var minY = height
+    var maxX = -1
+    var maxY = -1
+    var count = 0
+    for y in 0..<height {
+        for x in stride(from: 0, to: width, by: 1) {
+            let color = channels(x, y)
+            if !isStrokeRed(color.0, color.1, color.2) { continue }
+            count += 1
+            if x < minX { minX = x }
+            if y < minY { minY = y }
+            if x > maxX { maxX = x }
+            if y > maxY { maxY = y }
+        }
+    }
+    guard count > 80, maxX > minX + 30, maxY > minY + 8 else { return nil }
+    let boxW = maxX - minX
+    let boxH = maxY - minY
+    guard boxW > width / 3, boxH < height / 2 else { return nil }
+    let band = max(6, boxH / 5)
+    var border = 0
+    var seen = 0
+    for y in minY...maxY {
+        for x in stride(from: minX, to: maxX + 1, by: 2) {
+            let color = channels(x, y)
+            if !isStrokeRed(color.0, color.1, color.2) { continue }
+            seen += 1
+            if x <= minX + band || x >= maxX - band || y <= minY + band || y >= maxY - band {
+                border += 1
+            }
+        }
+    }
+    guard seen > 40, border * 100 / seen >= 65 else { return nil }
+    return CGRect(x: minX, y: minY, width: boxW, height: boxH)
+}
+
+func tokensInside(_ tokens: [OCRToken], rect: CGRect, width: Int, height: Int) -> [OCRToken] {
+    tokens.filter { token in
+        let x = token.box.midX * CGFloat(width)
+        let y = (1 - token.box.midY) * CGFloat(height)
+        return x >= rect.minX && x <= rect.maxX && y >= rect.minY && y <= rect.maxY
+    }
+}
+
 func lineText(_ tokens: [OCRToken]) -> String {
     let ordered = tokens.sorted { left, right in
         if abs(left.box.minX - right.box.minX) < 0.03 {
@@ -146,6 +209,29 @@ func lineText(_ tokens: [OCRToken]) -> String {
         return left.box.minX < right.box.minX
     }
     return ordered.map { $0.text }.joined(separator: " ")
+}
+
+func groupRows(_ tokens: [OCRToken]) -> [[OCRToken]] {
+    let heights = tokens.map { $0.box.height }.sorted()
+    let median = heights.isEmpty ? 0.02 : heights[heights.count / 2]
+    let threshold = max(median * 0.7, 0.006)
+    var remaining = tokens.sorted { $0.box.midY > $1.box.midY }
+    var rows: [[OCRToken]] = []
+    while !remaining.isEmpty {
+        let anchor = remaining[0].box.midY
+        var row: [OCRToken] = []
+        var rest: [OCRToken] = []
+        for token in remaining {
+            if abs(token.box.midY - anchor) <= threshold {
+                row.append(token)
+            } else {
+                rest.append(token)
+            }
+        }
+        remaining = rest
+        rows.append(row)
+    }
+    return rows
 }
 
 func recognize(_ url: URL) throws {
@@ -180,6 +266,21 @@ func recognize(_ url: URL) throws {
     }
     if rows.isEmpty { return }
     let rep = NSBitmapImageRep(cgImage: cg)
+    if let rect = redRectangle(in: rep) {
+        let inside = tokensInside(tokens, rect: rect, width: rep.pixelsWide, height: rep.pixelsHigh)
+        if inside.count >= 2 {
+            print("[[highlight]]" + lineText(inside))
+            let outside = tokens.filter { token in
+                let x = token.box.midX * CGFloat(rep.pixelsWide)
+                let y = (1 - token.box.midY) * CGFloat(rep.pixelsHigh)
+                return x < rect.minX || x > rect.maxX || y < rect.minY || y > rect.maxY
+            }
+            for row in groupRows(outside) {
+                print(lineText(row))
+            }
+            return
+        }
+    }
     let colors = rows.map { row -> (Int, Int, Int) in
         let midY = row.map { $0.box.midY }.reduce(0, +) / CGFloat(row.count)
         return rowColor(rep: rep, midY: midY) ?? (255, 255, 255)
