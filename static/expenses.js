@@ -44,9 +44,28 @@ function updateWriteOffHint() {
   hint.textContent = `Deductible $${moneyFromCents(deducted)} of $${moneyFromCents(cents)}`;
 }
 
+function catalogChoiceId(selectId, name) {
+  const wanted = (name || "").trim();
+  if (!wanted) return "";
+  if (selectId === "expenseVendor") {
+    const match = (state.expenseChoices.vendors || []).find((item) => item.name === wanted);
+    return match ? String(match.id) : "";
+  }
+  if (selectId === "expenseCategory") {
+    const match = (state.expenseChoices.categories || []).find((item) => item.label === wanted);
+    return match ? String(match.id) : "";
+  }
+  return "";
+}
+
 function selectedChoiceId(selectId) {
-  const option = $(selectId)?.selectedOptions?.[0];
-  return option?.dataset?.id || "";
+  const el = $(selectId);
+  if (!el) return "";
+  const option = el.selectedOptions?.[0] || (el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null);
+  const marked = option?.getAttribute?.("data-id") || "";
+  if (marked) return marked;
+  const name = (option?.value || option?.textContent || el.value || "").trim();
+  return catalogChoiceId(selectId, name);
 }
 
 function fillExpenseYearSelect(expenses) {
@@ -439,18 +458,10 @@ function openExpense(expense) {
     book: expense.title || "",
   });
   if (expense.payee && $("expenseVendor").value !== expense.payee) {
-    $("expenseVendor").insertAdjacentHTML(
-      "afterbegin",
-      `<option value="${escapeHtml(expense.payee)}">${escapeHtml(expense.payee)}</option>`,
-    );
-    $("expenseVendor").value = expense.payee;
+    setSelectValue("expenseVendor", expense.payee);
   }
   if (expense.category && $("expenseCategory").value !== expense.category) {
-    $("expenseCategory").insertAdjacentHTML(
-      "afterbegin",
-      `<option value="${escapeHtml(expense.category)}">${escapeHtml(expense.category)}</option>`,
-    );
-    $("expenseCategory").value = expense.category;
+    setSelectValue("expenseCategory", expense.category);
   }
   if (expense.title && $("expenseBook").value !== expense.title) {
     $("expenseBook").insertAdjacentHTML(
@@ -512,12 +523,14 @@ function setSelectValue(id, value) {
   const el = $(id);
   if (!el) return;
   const wanted = value || "";
-  const existing = [...el.options].find((option) => option.value === wanted);
-  if (!existing) {
-    const option = new Option(wanted, wanted);
+  let option = [...el.options].find((item) => item.value === wanted);
+  if (!option) {
+    option = new Option(wanted, wanted);
     if (wanted) el.add(option);
-    else el.add(option, el.options[0] || null);
+    else el.add(option, 0);
   }
+  const choiceId = catalogChoiceId(id, wanted);
+  if (choiceId) option.dataset.id = choiceId;
   el.value = wanted;
 }
 
@@ -550,17 +563,38 @@ function receiptReadHint(fields) {
   return `${filledText}${blankText} Nothing is saved until you click Save.`;
 }
 
+let receiptReadToken = 0;
+
+function dropUnsavedExpenseEdits() {
+  receiptReadToken += 1;
+  state.expenseUi.pendingFiles = [];
+  if ($("expenseFiles")) $("expenseFiles").value = "";
+  if ($("expenseCaptureFile")) $("expenseCaptureFile").value = "";
+  setCaptureHint("");
+  setExpenseDropHint();
+}
+
+function discardExpense() {
+  dropUnsavedExpenseEdits();
+  const dialog = $("expenseDialog");
+  if (dialog?.open) dialog.close();
+}
+
 async function readAndAttachScreenshot(file) {
+  const token = ++receiptReadToken;
   setCaptureHint("Reading screenshot…");
   try {
     const form = new FormData();
     form.append("file", file, file.name || "receipt.png");
     const fields = await api("/api/expenses/read-receipt", { method: "POST", body: form });
+    if (token !== receiptReadToken) return;
     applyReceiptFields(fields);
     setCaptureHint(receiptReadHint(fields));
   } catch (error) {
+    if (token !== receiptReadToken) return;
     setCaptureHint(error.message);
   }
+  if (token !== receiptReadToken) return;
   queuePendingReceipts([file]);
 }
 
@@ -662,10 +696,14 @@ $("addVendorBtn")?.addEventListener("click", async () => {
   }
 });
 
-$("removeVendorBtn")?.addEventListener("click", async () => {
+$("removeVendorBtn")?.addEventListener("click", async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  const el = $("expenseVendor");
+  const option = el?.selectedOptions?.[0] || (el && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null);
+  const name = (option?.value || option?.textContent || el?.value || "").trim();
   const id = selectedChoiceId("expenseVendor");
-  const name = $("expenseVendor")?.value || "";
-  if (!id) {
+  if (!name || !id) {
     alert("Choose a vendor to remove.");
     return;
   }
@@ -810,6 +848,16 @@ $("expenseReceipts")?.addEventListener("click", async (event) => {
 
 $("expenseWriteOffPercent")?.addEventListener("input", updateWriteOffHint);
 $("expenseAmount")?.addEventListener("input", updateWriteOffHint);
+
+$("discardExpenseBtn")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  discardExpense();
+});
+
+$("expenseDialog")?.addEventListener("close", () => {
+  dropUnsavedExpenseEdits();
+});
 
 $("saveExpenseBtn")?.addEventListener("click", async () => {
   try {

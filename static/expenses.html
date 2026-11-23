@@ -54,7 +54,7 @@
   </main>
 
   <dialog id="expenseDialog">
-    <form method="dialog" class="dialog-body" id="expenseForm">
+    <form method="dialog" class="dialog-body" id="expenseForm" novalidate>
       <header class="dialog-header">
         <h2 id="expenseDialogTitle">Expense</h2>
         <button type="submit" class="btn" value="cancel">Close</button>
@@ -86,22 +86,22 @@
             <span>Currency</span>
             <input id="expenseCurrency" type="text" value="USD" maxlength="3" required>
           </label>
-          <label class="field">
+          <div class="field">
             <span>Vendor</span>
             <div class="choice-row">
               <select id="expenseVendor" aria-label="Vendor" required></select>
               <button type="button" class="btn" id="addVendorBtn">Add</button>
               <button type="button" class="btn" id="removeVendorBtn">Remove</button>
             </div>
-          </label>
-          <label class="field">
+          </div>
+          <div class="field">
             <span>Category</span>
             <div class="choice-row">
               <select id="expenseCategory" aria-label="Category" required></select>
               <button type="button" class="btn" id="addCategoryBtn">Add</button>
               <button type="button" class="btn" id="removeCategoryBtn">Remove</button>
             </div>
-          </label>
+          </div>
           <label class="field expense-span-2">
             <span>Description</span>
             <input id="expenseDescription" type="text" placeholder="Photoshop, Facebook ads, proof copies…">
@@ -131,6 +131,7 @@
         <p class="muted hidden" id="expenseSavedHint"></p>
         <div class="button-row">
           <button type="button" class="btn primary" id="saveExpenseBtn">Save</button>
+          <button type="button" class="btn" id="discardExpenseBtn">Discard</button>
           <button type="button" class="btn" id="saveAndAddExpenseBtn">Save and add another</button>
           <button type="button" class="btn danger hidden" id="deleteExpenseBtn">Delete</button>
         </div>

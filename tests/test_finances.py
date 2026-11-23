@@ -225,6 +225,8 @@ class AppTests(unittest.TestCase):
         self.assertIn('id="expenseWriteOffPercent"', page)
         self.assertIn('id="expenseFiles"', page)
         self.assertIn('id="expenseCapture"', page)
+        self.assertIn('id="discardExpenseBtn"', page)
+        self.assertNotIn('<label class="field">\n            <span>Vendor</span>', page)
         script = (ROOT / "static" / "expenses.js").read_text(encoding="utf-8")
         self.assertIn("/api/expenses/read-receipt", script)
         self.assertIn("Nothing is saved until you click Save", script)
