@@ -32,7 +32,7 @@ http://127.0.0.1:8791 opens Expenses. An older address such as http://127.0.0.1:
 
 ## Expenses
 
-The Expenses page matches the Book Art Library ledger. Filter by year, book, vendor, category, and write-off, search, and print the report. Click a row to open it. Add and edit in that window: date, vendor, category, description, amount, currency, book (General when it is not tied to a book), payment method, tax write-off percent, notes, and receipt files. Delete is in that window. Totals stay per currency, and the tax write-off is the deductible part of each amount.
+The Expenses page matches the Book Art Library ledger. Filter by year, book, vendor, category, and write-off, search, and print the report. Click a row to open it. Add and edit in that window: date, vendor, category, description, amount, currency, book (General when it is not tied to a book), payment method, tax write-off percent, notes, and receipt files. Drop, paste, or choose a screenshot of a receipt, invoice, or bank transaction and the form fills those fields from the image. Anything it cannot read stays blank. The image is attached as the receipt, and nothing is saved until Save. Delete is in that window. Totals stay per currency, and the tax write-off is the deductible part of each amount.
 
 ## Royalties
 

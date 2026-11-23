@@ -12,7 +12,7 @@ os.environ.setdefault("FINANCES_DB", str(ROOT / "data" / "test-unused.db"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from finances import db, royalties  # noqa: E402
+from finances import db, receipt_read, royalties  # noqa: E402
 from finances.api import app  # noqa: E402
 
 
@@ -224,9 +224,135 @@ class AppTests(unittest.TestCase):
         self.assertIn('id="expensePayment"', page)
         self.assertIn('id="expenseWriteOffPercent"', page)
         self.assertIn('id="expenseFiles"', page)
+        self.assertIn('id="expenseCapture"', page)
+        script = (ROOT / "static" / "expenses.js").read_text(encoding="utf-8")
+        self.assertIn("/api/expenses/read-receipt", script)
+        self.assertIn("Nothing is saved until you click Save", script)
         self.assertNotIn("expenseRows", page)
         self.assertIn("margin: 0 auto", css)
         self.assertIn("min(var(--max), calc(100% - 2rem))", css)
+
+    def test_read_receipt_fills_fields_without_saving(self):
+        categories = [row["label"] for row in db.list_expense_categories()]
+        receipt = """
+        CURSOR
+        Date: April 7, 2026
+        Description: Cursor Pro
+        Subtotal $180.00
+        Tax $25.44
+        Total $205.44
+        Visa debit
+        Silas and the Wizard
+        Invoice #1042
+        """
+        fields = receipt_read.parse_receipt_text(
+            receipt,
+            vendors=["Cursor"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertEqual(fields["spent_on"], "2026-04-07")
+        self.assertEqual(fields["payee"], "Cursor")
+        self.assertEqual(fields["amount"], "205.44")
+        self.assertEqual(fields["currency"], "USD")
+        self.assertEqual(fields["category"], "Software")
+        self.assertEqual(fields["description"], "Cursor Pro")
+        self.assertEqual(fields["payment_method"], "Visa debit")
+        self.assertEqual(fields["title"], "Silas and the Wizard")
+        self.assertEqual(fields["notes"], "Invoice #1042")
+
+        bank = """
+        Chase
+        Debit card purchase
+        META PLATFORMS
+        FACEBOOK ADS
+        10/03/2026
+        -$5.00
+        """
+        bank_fields = receipt_read.parse_receipt_text(
+            bank,
+            vendors=["Meta"],
+            categories=categories,
+            books=["Silas and the Wizard"],
+        )
+        self.assertEqual(bank_fields["spent_on"], "2026-10-03")
+        self.assertEqual(bank_fields["payee"], "Meta")
+        self.assertEqual(bank_fields["amount"], "5.00")
+        self.assertEqual(bank_fields["currency"], "USD")
+        self.assertEqual(bank_fields["category"], "Advertising")
+        self.assertEqual(bank_fields["description"], "FACEBOOK ADS")
+        self.assertEqual(bank_fields["payment_method"], "Debit card purchase")
+        self.assertEqual(bank_fields["title"], "")
+        self.assertEqual(bank_fields["notes"], "")
+
+        blank = receipt_read.parse_receipt_text("hello", categories=categories)
+        for name in receipt_read.FIELD_NAMES:
+            self.assertEqual(blank[name], "")
+
+        before = self.client.get("/api/expenses").json()["expenses"]
+        tiny = bytes.fromhex(
+            "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753"
+            "de0000000c4944415408d763f8ffff3f0005fe02fe5b2a1a2e0000000049454e44ae426082"
+        )
+        read = self.client.post(
+            "/api/expenses/read-receipt",
+            files={"file": ("shot.png", tiny, "image/png")},
+        )
+        self.assertEqual(read.status_code, 200, read.text)
+        body = read.json()
+        for name in receipt_read.FIELD_NAMES:
+            self.assertEqual(body[name], "")
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before)
+        self.assertEqual(db.list_expenses(), before)
+
+    def test_screenshot_ocr_does_not_save_until_confirm(self):
+        if not receipt_read.ocr_available():
+            self.skipTest("macOS Vision OCR is not available")
+        self.client.post("/api/expense-vendors", json={"name": "Cursor"})
+        self.client.post("/api/expense-books", json={"name": "Silas and the Wizard"})
+        image = Path(self.tmp.name) / "receipt.png"
+        receipt_read.render_receipt_image(
+            image,
+            "\n".join(
+                [
+                    "CURSOR",
+                    "Date: April 7, 2026",
+                    "Description: Cursor Pro",
+                    "Total $205.44",
+                    "Visa debit",
+                    "Silas and the Wizard",
+                    "Invoice #1042",
+                ]
+            ),
+        )
+        before = self.client.get("/api/expenses").json()["expenses"]
+        read = self.client.post(
+            "/api/expenses/read-receipt",
+            files={"file": ("receipt.png", image.read_bytes(), "image/png")},
+        )
+        self.assertEqual(read.status_code, 200, read.text)
+        body = read.json()
+        self.assertEqual(body["spent_on"], "2026-04-07")
+        self.assertEqual(body["payee"], "Cursor")
+        self.assertEqual(body["amount"], "205.44")
+        self.assertEqual(body["currency"], "USD")
+        self.assertEqual(body["category"], "Software")
+        self.assertEqual(body["description"], "Cursor Pro")
+        self.assertEqual(body["payment_method"], "Visa debit")
+        self.assertEqual(body["title"], "Silas and the Wizard")
+        self.assertEqual(body["notes"], "Invoice #1042")
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before)
+
+        unread = Path(self.tmp.name) / "blank.png"
+        receipt_read.render_receipt_image(unread, "hello")
+        blank = self.client.post(
+            "/api/expenses/read-receipt",
+            files={"file": ("blank.png", unread.read_bytes(), "image/png")},
+        )
+        self.assertEqual(blank.status_code, 200, blank.text)
+        for name in receipt_read.FIELD_NAMES:
+            self.assertEqual(blank.json()[name], "")
+        self.assertEqual(self.client.get("/api/expenses").json()["expenses"], before)
 
     def test_library_seed_imports_through_the_model(self):
         seed = json.loads((ROOT / "seeds" / "expenses.json").read_text(encoding="utf-8"))

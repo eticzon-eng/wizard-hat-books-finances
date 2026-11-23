@@ -61,6 +61,11 @@
       </header>
       <div class="expense-body">
         <input type="hidden" id="expenseEditId">
+        <div class="receipt-drop" id="expenseCapture">
+          <input id="expenseCaptureFile" type="file" accept="image/*">
+          <p>Drop, paste, or click a screenshot of a receipt, invoice, or bank transaction. The form fills in, and the image is attached. Nothing is saved until you click Save.</p>
+        </div>
+        <p class="muted hidden" id="expenseCaptureHint"></p>
         <div class="expense-form-grid">
           <label class="field expense-span-2">
             <span>Book</span>

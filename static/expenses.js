@@ -425,7 +425,9 @@ function resetExpenseForm() {
   state.expenseUi.pendingFiles = [];
   state.expenseUi.currentAttachments = [];
   if ($("expenseFiles")) $("expenseFiles").value = "";
+  if ($("expenseCaptureFile")) $("expenseCaptureFile").value = "";
   setExpenseDropHint();
+  setCaptureHint("");
   renderExpenseReceipts([]);
   updateWriteOffHint();
 }
@@ -474,10 +476,105 @@ function openExpense(expense) {
   $("expenseSavedHint").classList.add("hidden");
   state.expenseUi.pendingFiles = [];
   if ($("expenseFiles")) $("expenseFiles").value = "";
+  if ($("expenseCaptureFile")) $("expenseCaptureFile").value = "";
   setExpenseDropHint();
+  setCaptureHint("");
   renderExpenseReceipts(expense.attachments || []);
   updateWriteOffHint();
   $("expenseDialog").showModal();
+}
+
+const RECEIPT_FIELD_LABELS = {
+  spent_on: "date",
+  payee: "vendor",
+  amount: "amount",
+  currency: "currency",
+  category: "category",
+  description: "description",
+  payment_method: "payment method",
+  title: "book",
+  notes: "notes",
+};
+
+function isReceiptImage(file) {
+  if (file?.type && file.type.startsWith("image/")) return true;
+  return /\.(png|jpe?g|webp|gif|tiff?|heic)$/i.test(file?.name || "");
+}
+
+function setCaptureHint(text) {
+  const hint = $("expenseCaptureHint");
+  if (!hint) return;
+  hint.textContent = text || "";
+  hint.classList.toggle("hidden", !text);
+}
+
+function setSelectValue(id, value) {
+  const el = $(id);
+  if (!el) return;
+  const wanted = value || "";
+  const existing = [...el.options].find((option) => option.value === wanted);
+  if (!existing) {
+    const option = new Option(wanted, wanted);
+    if (wanted) el.add(option);
+    else el.add(option, el.options[0] || null);
+  }
+  el.value = wanted;
+}
+
+function applyReceiptFields(fields) {
+  $("expenseDate").value = fields.spent_on || "";
+  $("expenseAmount").value = fields.amount || "";
+  $("expenseCurrency").value = fields.currency || "";
+  $("expenseDescription").value = fields.description || "";
+  $("expensePayment").value = fields.payment_method || "";
+  $("expenseNotes").value = fields.notes || "";
+  setSelectValue("expenseVendor", fields.payee || "");
+  const categoryLabels = new Set(
+    (state.expenseChoices.categories || []).map((item) => item.label),
+  );
+  const category = categoryLabels.has(fields.category) ? fields.category : "";
+  setSelectValue("expenseCategory", category);
+  setSelectValue("expenseBook", fields.title || "");
+  updateWriteOffHint();
+}
+
+function receiptReadHint(fields) {
+  const names = Object.keys(RECEIPT_FIELD_LABELS);
+  const filled = (fields.filled || []).filter((name) => RECEIPT_FIELD_LABELS[name]);
+  const blank = names.filter((name) => !filled.includes(name)).map((name) => RECEIPT_FIELD_LABELS[name]);
+  if (!fields.recognized || !filled.length) {
+    return "Couldn't read that screenshot. Those fields were left blank, and the image is attached. Nothing is saved until you click Save.";
+  }
+  const filledText = `Filled ${filled.map((name) => RECEIPT_FIELD_LABELS[name]).join(", ")}.`;
+  const blankText = blank.length ? ` Left blank: ${blank.join(", ")}.` : "";
+  return `${filledText}${blankText} Nothing is saved until you click Save.`;
+}
+
+async function readAndAttachScreenshot(file) {
+  setCaptureHint("Reading screenshot…");
+  try {
+    const form = new FormData();
+    form.append("file", file, file.name || "receipt.png");
+    const fields = await api("/api/expenses/read-receipt", { method: "POST", body: form });
+    applyReceiptFields(fields);
+    setCaptureHint(receiptReadHint(fields));
+  } catch (error) {
+    setCaptureHint(error.message);
+  }
+  queuePendingReceipts([file]);
+}
+
+async function acceptReceiptFiles(fileList, { readImages }) {
+  const files = [...fileList].filter(Boolean);
+  if (!files.length) return;
+  const images = files.filter(isReceiptImage);
+  const others = files.filter((file) => !isReceiptImage(file));
+  if (readImages && images.length) {
+    await readAndAttachScreenshot(images[0]);
+    queuePendingReceipts([...images.slice(1), ...others]);
+    return;
+  }
+  queuePendingReceipts(files);
 }
 
 function queuePendingReceipts(fileList) {
@@ -628,7 +725,12 @@ $("addBookBtn")?.addEventListener("click", async () => {
 });
 
 $("expenseFiles")?.addEventListener("change", (event) => {
-  queuePendingReceipts(event.target.files || []);
+  acceptReceiptFiles(event.target.files || [], { readImages: true });
+  event.target.value = "";
+});
+
+$("expenseCaptureFile")?.addEventListener("change", (event) => {
+  acceptReceiptFiles(event.target.files || [], { readImages: true });
   event.target.value = "";
 });
 
@@ -647,7 +749,26 @@ if (expenseDrop) {
     });
   });
   expenseDrop.addEventListener("drop", (event) => {
-    queuePendingReceipts(event.dataTransfer?.files || []);
+    acceptReceiptFiles(event.dataTransfer?.files || [], { readImages: true });
+  });
+}
+
+const expenseCapture = $("expenseCapture");
+if (expenseCapture) {
+  ["dragenter", "dragover"].forEach((type) => {
+    expenseCapture.addEventListener(type, (event) => {
+      event.preventDefault();
+      expenseCapture.classList.add("dragover");
+    });
+  });
+  ["dragleave", "drop"].forEach((type) => {
+    expenseCapture.addEventListener(type, (event) => {
+      event.preventDefault();
+      expenseCapture.classList.remove("dragover");
+    });
+  });
+  expenseCapture.addEventListener("drop", (event) => {
+    acceptReceiptFiles(event.dataTransfer?.files || [], { readImages: true });
   });
 }
 
@@ -655,7 +776,7 @@ $("expenseDialog")?.addEventListener("paste", (event) => {
   const files = [...(event.clipboardData?.files || [])];
   if (!files.length) return;
   event.preventDefault();
-  queuePendingReceipts(files);
+  acceptReceiptFiles(files, { readImages: true });
 });
 
 $("expenseReceipts")?.addEventListener("click", async (event) => {
@@ -711,7 +832,9 @@ $("saveAndAddExpenseBtn")?.addEventListener("click", async () => {
     state.expenseUi.pendingFiles = [];
     state.expenseUi.currentAttachments = [];
     if ($("expenseFiles")) $("expenseFiles").value = "";
+    if ($("expenseCaptureFile")) $("expenseCaptureFile").value = "";
     setExpenseDropHint();
+    setCaptureHint("");
     renderExpenseReceipts([]);
     $("expenseSavedHint").textContent = "Saved. These details carry over. Attach the next receipt.";
     $("expenseSavedHint").classList.remove("hidden");

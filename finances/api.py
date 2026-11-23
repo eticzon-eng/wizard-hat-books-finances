@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import db, royalties
+from . import db, receipt_read, royalties
 from .paths import STATIC_DIR, ensure_dirs
 
 app = FastAPI(title="Wizard Hat Books Finances", version="0.1.0")
@@ -222,6 +222,34 @@ def get_expense(expense_id: int) -> dict[str, Any]:
         return db.get_expense(expense_id)
     except ValueError as exc:
         raise _bad(exc) from exc
+
+
+@app.post("/api/expenses/read-receipt")
+async def read_expense_receipt(file: UploadFile = File(...)) -> dict[str, Any]:
+    """Read a screenshot into form fields. Does not save an expense or a receipt."""
+    suffix = Path(file.filename or "receipt.png").suffix.lower()
+    if suffix not in receipt_read.IMAGE_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail="Give a screenshot image (PNG, JPG, WEBP, GIF, or TIFF).",
+        )
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="That screenshot is empty.")
+    if len(data) > db.MAX_RECEIPT_BYTES:
+        raise HTTPException(status_code=400, detail="That screenshot is larger than 25 MB.")
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        handle.write(data)
+        image = Path(handle.name)
+    try:
+        return receipt_read.read_image(
+            image,
+            vendors=[row["name"] for row in db.list_expense_vendors()],
+            categories=[row["label"] for row in db.list_expense_categories()],
+            books=[row["name"] for row in db.list_expense_books()],
+        )
+    finally:
+        image.unlink(missing_ok=True)
 
 
 @app.post("/api/expenses")
